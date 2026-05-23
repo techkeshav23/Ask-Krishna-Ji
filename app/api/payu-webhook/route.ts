@@ -1,8 +1,5 @@
 import { NextRequest } from "next/server";
-import {
-  verifyResponseHashDebug,
-  type PayUCallback,
-} from "@/lib/payu";
+import { verifyResponseHash, type PayUCallback } from "@/lib/payu";
 import { adminDb } from "@/lib/firebase-admin";
 import { sendEmail, renderPremiumInvoiceHtml } from "@/lib/email";
 import { generateCode } from "@/lib/codes";
@@ -35,39 +32,12 @@ export async function POST(req: NextRequest) {
     const form = await req.formData();
     const cb = formDataToCallback(form);
 
-    // Multi-variant verification: tries docs / SDK / additionalCharges
-    // / decoded permutations and reports which one matched.
-    const debug = verifyResponseHashDebug(cb, salt);
-    if (!debug.ok) {
-      console.warn("[payu-webhook] hash mismatch — all variants failed", {
+    if (!verifyResponseHash(cb, salt)) {
+      console.warn("[payu-webhook] hash mismatch — possible spoof", {
         txnid: cb.txnid,
         status: cb.status,
-        productinfoFull: cb.productinfo,
-        firstnameFull: cb.firstname,
-        emailFull: cb.email,
-        amountValue: cb.amount,
-        udf1: cb.udf1,
-        udf2: cb.udf2,
-        udf3: cb.udf3,
-        udf4: cb.udf4,
-        udf5: cb.udf5,
-        keyValue: cb.key,
-        additionalCharges: cb.additionalCharges,
-        receivedHash: debug.receivedHash,
-        canonicalExpectedHash: debug.expectedHash,
-        canonicalHashStringMasked: debug.hashStringMasked,
-        // Salt sanity: length + last 3 chars (NOT the secret bulk) so
-        // we can detect a Vercel env-var paste error without leaking
-        // the salt itself.
-        saltLen: salt.length,
-        saltLast3: salt.slice(-3),
       });
       return htmlRedirect("/premium-failed?reason=invalid");
-    }
-    if (debug.formulaVariant !== "docs-decoded") {
-      console.info(
-        `[payu-webhook] hash matched via non-canonical variant: ${debug.formulaVariant}`
-      );
     }
 
     const tier = (cb.udf2 || "premium-yearly").trim();

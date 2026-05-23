@@ -13,9 +13,17 @@ import CryptoJS from "crypto-js";
  *      `surl` (success) or `furl` (failure) with a response hash.
  *   4. We verify the response hash to confirm the callback is genuine.
  *
- * Hash formulas (PayU's official spec):
- *   request  = sha512(KEY|TXNID|AMOUNT|PRODUCTINFO|FIRSTNAME|EMAIL|||||||||||SALT)
- *   response = sha512(SALT|STATUS|||||||||||EMAIL|FIRSTNAME|PRODUCTINFO|AMOUNT|TXNID|KEY)
+ * Hash formulas:
+ *   request  = sha512(KEY|TXNID|AMOUNT|PRODUCTINFO|FIRSTNAME|EMAIL|UDF1|UDF2|UDF3|UDF4|UDF5||||||SALT)
+ *   response = sha512(SALT|STATUS||||||UDF5|UDF4|UDF3|UDF2|UDF1|EMAIL|FIRSTNAME|PRODUCTINFO|AMOUNT|TXNID|KEY)
+ *
+ * Note on the response formula: PayU's docs and various SDK examples
+ * disagree on the empty-pipe count between status and udf5 (claims
+ * range from 5 to 11). The 5-empty version (six pipes) is what this
+ * merchant account actually uses — verified by brute-force matching
+ * against a live successful transaction. If PayU silently changes the
+ * formula in future, `assertPayuSafe` + diagnostic logs in the
+ * webhook will surface it loudly.
  */
 
 export interface PayUOrderInput {
@@ -30,10 +38,10 @@ export interface PayUOrderInput {
   // Optional user-defined fields (passed back unchanged in callback).
   // We use these to carry app UID + tier so the webhook can attribute
   // the payment without a separate lookup.
-  udf1?: string;          // app uid
-  udf2?: string;          // tier: "premium" | "pracharak-bulk-5" | etc.
-  udf3?: string;          // optional extra
-  udf4?: string;
+  udf1?: string;          // app uid or pracharak id
+  udf2?: string;          // tier: "premium-yearly" | "pracharak-bulk-5" | etc.
+  udf3?: string;          // optional extra (e.g. return deep link)
+  udf4?: string;          // optional extra (e.g. bulk quantity)
   udf5?: string;
 }
 
@@ -60,15 +68,12 @@ const assertPayuSafe = (value: string, fieldName: string): void => {
 
 /**
  * Builds the request hash that PayU's checkout form needs.
- * Formula: sha512(key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5||||||salt)
  */
 export const buildRequestHash = (
   input: PayUOrderInput,
   key: string,
   salt: string
 ): string => {
-  // Guardrails: catch unsafe chars at init time so a single bad
-  // productinfo string can't silently break every payment in prod.
   assertPayuSafe(input.productinfo, "productinfo");
   assertPayuSafe(input.firstname, "firstname");
   const parts = [
@@ -83,15 +88,10 @@ export const buildRequestHash = (
     input.udf3 ?? "",
     input.udf4 ?? "",
     input.udf5 ?? "",
-    "",
-    "",
-    "",
-    "",
-    "",
+    "", "", "", "", "",   // 5 reserved empties before salt
     salt,
   ];
-  const raw = parts.join("|");
-  return CryptoJS.SHA512(raw).toString(CryptoJS.enc.Hex);
+  return CryptoJS.SHA512(parts.join("|")).toString(CryptoJS.enc.Hex);
 };
 
 export interface PayUCallback {
@@ -113,180 +113,33 @@ export interface PayUCallback {
   bank_ref_num?: string;
   bankcode?: string;
   /**
-   * PayU appends an `additional_charges` field to the response (and
-   * prepends it to the hash) when convenience fee / surcharge is in
-   * play — most commonly with credit cards. We MUST include it in the
-   * verification formula when present, otherwise the recomputed hash
-   * won't match and every payment looks invalid.
-   *
-   * Field name varies between docs (`additionalCharges` vs
-   * `additional_charges`) — we accept either at the form-parse layer
-   * and normalise to this field.
+   * PayU prepends `additional_charges` to the response-hash formula
+   * when convenience fee / surcharge is in play (common on credit
+   * cards). Field name varies between docs (`additionalCharges` vs
+   * `additional_charges`) so the webhook accepts either at the form-
+   * parse layer and normalises to this canonical field.
    */
   additionalCharges?: string;
 }
 
 /**
  * Verifies the hash PayU sent back in the success/failure callback.
- * If this returns false, the callback should be REJECTED — could be a
- * spoofed request from someone trying to fake a payment.
+ * Returns false if mismatch — caller should reject as a possible spoof.
  *
- * Response hash formula:
- *   sha512(salt|status|||||||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key)
- *
- * When PayU adds convenience-fee surcharge, an `additionalCharges`
- * field is prepended:
- *   sha512(additionalCharges|salt|status|||||||||||udf5|...|key)
+ * Two layers of forgiveness to survive PayU's quirks:
+ *   1. Echoed string fields (productinfo, firstname, email, udfs) get
+ *      HTML-decoded — PayU sometimes rewrites `—` → `&mdash;`, `&` →
+ *      `&amp;` etc., but signs against the original.
+ *   2. additionalCharges is prepended to the formula when present.
  */
-/**
- * Helper that returns the verification artifacts so callers can log
- * everything in a single log line when verification fails.
- */
-export interface PayUHashDebug {
-  ok: boolean;
-  expectedHash: string;
-  receivedHash: string;
-  hashStringMasked: string;
-  formulaVariant: string;
-}
-
-export const verifyResponseHashDebug = (
-  cb: PayUCallback,
-  salt: string
-): PayUHashDebug => {
-  // Try every known formula variant and return the first match. This
-  // lets us survive PayU's published-formula disagreements between
-  // their docs vs SDK examples, and tells us in the logs WHICH variant
-  // matched so we can simplify later.
-  const candidates = buildVerificationCandidates(cb, salt);
-  for (const c of candidates) {
-    const expected = CryptoJS.SHA512(c.hashString).toString(CryptoJS.enc.Hex);
-    if (timingSafeEqualHex(expected, cb.hash)) {
-      return {
-        ok: true,
-        expectedHash: expected,
-        receivedHash: cb.hash,
-        hashStringMasked: c.hashString.replace(salt, "***SALT***"),
-        formulaVariant: c.name,
-      };
-    }
-  }
-  // No match — return the canonical variant for diagnostic logging.
-  const canonical = candidates[0]!;
-  const expected = CryptoJS.SHA512(canonical.hashString).toString(
-    CryptoJS.enc.Hex
-  );
-  return {
-    ok: false,
-    expectedHash: expected,
-    receivedHash: cb.hash,
-    hashStringMasked: canonical.hashString.replace(salt, "***SALT***"),
-    formulaVariant: canonical.name,
-  };
-};
-
-const buildVerificationCandidates = (
-  cb: PayUCallback,
-  salt: string
-): { name: string; hashString: string }[] => {
-  // Decoded vs raw — covers HTML entities like &mdash; / &amp;.
-  const fieldSets = [
-    {
-      tag: "raw",
-      productinfo: cb.productinfo,
-      firstname: cb.firstname,
-      email: cb.email,
-      udf1: cb.udf1 ?? "",
-      udf2: cb.udf2 ?? "",
-      udf3: cb.udf3 ?? "",
-      udf4: cb.udf4 ?? "",
-      udf5: cb.udf5 ?? "",
-    },
-    {
-      tag: "decoded",
-      productinfo: htmlDecode(cb.productinfo),
-      firstname: htmlDecode(cb.firstname),
-      email: htmlDecode(cb.email),
-      udf1: htmlDecode(cb.udf1 ?? ""),
-      udf2: htmlDecode(cb.udf2 ?? ""),
-      udf3: htmlDecode(cb.udf3 ?? ""),
-      udf4: htmlDecode(cb.udf4 ?? ""),
-      udf5: htmlDecode(cb.udf5 ?? ""),
-    },
-  ];
-  const candidates: { name: string; hashString: string }[] = [];
-  // Amount variants — PayU sometimes strips trailing zeros or treats
-  // integer amounts without the decimal portion.
-  const amountVariants = [cb.amount];
-  if (cb.amount.endsWith(".00")) {
-    amountVariants.push(cb.amount.slice(0, -3)); // "2500.00" → "2500"
-  }
-  if (!cb.amount.includes(".")) {
-    amountVariants.push(`${cb.amount}.00`);
-  }
-
-  const buildPrefixVariants = (
-    prefix: string[],
-    prefixLabel: string
-  ): void => {
-    for (const fs of fieldSets) {
-      for (const amt of amountVariants) {
-        // Brute-force pipe count between status and udf5: PayU SDKs
-        // across versions ship anywhere from 5 to 11 empty fields here;
-        // their docs and code disagree, so test every plausible count.
-        for (let emptyCount = 4; emptyCount <= 12; emptyCount++) {
-          const empties = Array(emptyCount).fill("");
-          const parts = [
-            ...prefix,
-            cb.status,
-            ...empties,
-            fs.udf5, fs.udf4, fs.udf3, fs.udf2, fs.udf1,
-            fs.email, fs.firstname, fs.productinfo,
-            amt, cb.txnid, cb.key,
-          ];
-          candidates.push({
-            name: `${prefixLabel}-empties${emptyCount}-${fs.tag}-amt${amt}`,
-            hashString: parts.join("|"),
-          });
-        }
-      }
-    }
-  };
-
-  // Prefix variants — PayU has shipped formulas with cardType,
-  // additionalCharges, or both prepended between salt and status.
-  buildPrefixVariants([salt], "plain");
-  buildPrefixVariants([salt, cb.additionalCharges || ""], "with-charges-empty");
-  if (cb.additionalCharges) {
-    buildPrefixVariants([cb.additionalCharges, salt], "charges-before-salt");
-    buildPrefixVariants([salt, cb.additionalCharges], "charges-after-salt");
-  }
-  return candidates;
-};
-
 export const verifyResponseHash = (
   cb: PayUCallback,
   salt: string
 ): boolean => {
-  // PayU re-encodes HTML entities in some string fields (e.g. an em-
-  // dash `—` becomes `&mdash;`, `&` becomes `&amp;`) when it echoes
-  // them back in the callback. But the hash on their side is computed
-  // against the ORIGINAL pre-encoding values — so we must decode
-  // before hashing or every callback fails as a "spoof". Init code
-  // should still stick to ASCII as primary defense; this decoder is a
-  // safety net for cases like a user's name containing an apostrophe.
   const baseParts = [
     salt,
     cb.status,
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
+    "", "", "", "", "",   // 5 empties between status and udf5
     htmlDecode(cb.udf5 ?? ""),
     htmlDecode(cb.udf4 ?? ""),
     htmlDecode(cb.udf3 ?? ""),
@@ -302,26 +155,8 @@ export const verifyResponseHash = (
   const parts = cb.additionalCharges
     ? [cb.additionalCharges, ...baseParts]
     : baseParts;
-  const hashString = parts.join("|");
-  const expected = CryptoJS.SHA512(hashString).toString(CryptoJS.enc.Hex);
-  const ok = timingSafeEqualHex(expected, cb.hash);
-  if (!ok) {
-    // Verbose diagnostic — temporary while integrating. Logs exactly
-    // what we hashed (with salt masked) so a mismatch is debuggable
-    // without running the salt back through Vercel logs.
-    const maskedHashString = hashString.replace(salt, "***SALT***");
-    console.warn("[payu] response hash mismatch", {
-      txnid: cb.txnid,
-      status: cb.status,
-      hasAdditionalCharges: !!cb.additionalCharges,
-      additionalChargesValue: cb.additionalCharges,
-      expectedHashFull: expected,
-      receivedHashFull: cb.hash,
-      hashStringMasked: maskedHashString,
-      hashStringLen: hashString.length,
-    });
-  }
-  return ok;
+  const expected = CryptoJS.SHA512(parts.join("|")).toString(CryptoJS.enc.Hex);
+  return timingSafeEqualHex(expected, cb.hash);
 };
 
 /**
@@ -342,7 +177,7 @@ const htmlDecode = (s: string): string => {
     .replace(/&mdash;/g, "—")
     .replace(/&ndash;/g, "–")
     .replace(/&hellip;/g, "…")
-    .replace(/&nbsp;/g, " ")
+    .replace(/&nbsp;/g, " ")
     .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
     .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)))
     .replace(/&amp;/g, "&");
@@ -353,10 +188,6 @@ const htmlDecode = (s: string): string => {
  * leaks timing information that lets attackers brute-force one nibble
  * at a time. `crypto.timingSafeEqual` runs in time proportional only to
  * length, never short-circuiting on the first mismatch.
- *
- * Both inputs are normalised to lowercase. If lengths differ we return
- * false immediately — timingSafeEqual throws on length mismatch, so
- * the length check has to happen first anyway.
  */
 const timingSafeEqualHex = (a: string, b: string): boolean => {
   const aLow = a.toLowerCase();
