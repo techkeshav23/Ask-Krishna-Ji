@@ -45,7 +45,7 @@ export default function PracharakLoginPage() {
           <div className="text-4xl mb-2">🪷</div>
           <h1 className="text-2xl font-bold">Pracharak Portal</h1>
           <p className="text-text-secondary text-sm mt-1">
-            Login with the email + password sent to you on approval.
+            Login with the email + password you chose at signup.
           </p>
         </div>
 

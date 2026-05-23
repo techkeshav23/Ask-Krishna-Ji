@@ -1,14 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import {
+  SESSION_COOKIE_NAME,
+  hashPassword,
+  sessionCookieOptions,
+  signSession,
+} from "@/lib/auth";
 
 /**
  * POST /api/pracharak-signup
  *
- * Receives the Pracharak signup form. Writes a `pracharaks/{autoId}` doc
- * with status "pending" — admin reviews + flips to "approved" later.
+ * Self-service pracharak onboarding. The user chooses their own password
+ * at signup and is immediately logged into the portal with status
+ * `pending_activation` — they unlock the full pracharak experience by
+ * paying for their first bulk-code batch (PayU webhook flips status to
+ * `approved` on success). No admin involvement; no auth emails.
  *
- * Idempotent on email — re-submitting the same email overwrites a pending
- * record but won't downgrade an "approved" record back to "pending".
+ * Email dedup rules:
+ *   - approved              → reject ("already registered, please login")
+ *   - revoked               → reject ("account suspended, contact admin")
+ *   - pending_activation    → overwrite password + profile, re-issue session
+ *   - pending (legacy)      → upgrade to pending_activation, set password
+ *   - no record             → create fresh
  */
 export async function POST(req: NextRequest) {
   try {
@@ -21,7 +34,6 @@ export async function POST(req: NextRequest) {
     const db = adminDb();
     const emailLower = String(body.email).trim().toLowerCase();
 
-    // Check for an existing record by email to avoid duplicate pending rows.
     const existing = await db
       .collection("pracharaks")
       .where("emailLower", "==", emailLower)
@@ -29,10 +41,8 @@ export async function POST(req: NextRequest) {
       .get();
 
     const now = Date.now();
+    const passwordHash = await hashPassword(String(body.password));
 
-    // Profile fields the signup form owns. Counters / status / passwordHash
-    // are intentionally NOT in this object so re-submission doesn't
-    // overwrite admin-managed state on an existing approved pracharak.
     const profileFields = {
       name: String(body.name).trim(),
       phone: String(body.phone).trim(),
@@ -45,33 +55,72 @@ export async function POST(req: NextRequest) {
       updatedAt: now,
     };
 
+    let pracharakId: string;
+
     if (!existing.empty) {
       const doc = existing.docs[0]!;
       const current = doc.data() as { status?: string };
-      // Preserve approved status + all counters / passwordHash / approvedAt
-      // by ONLY merging the profile fields above. If current is pending,
-      // ensure status stays pending; if approved, status stays approved.
-      await doc.ref.set(profileFields, { merge: true });
-      return NextResponse.json({
-        ok: true,
-        id: doc.id,
-        deduped: true,
-        status: current.status || "pending",
+      const status = current.status || "pending";
+
+      if (status === "approved") {
+        return NextResponse.json(
+          {
+            error:
+              "This email is already registered. Please log in instead.",
+          },
+          { status: 409 }
+        );
+      }
+      if (status === "revoked" || status === "rejected") {
+        return NextResponse.json(
+          {
+            error:
+              "This account is not active. Please contact support.",
+          },
+          { status: 403 }
+        );
+      }
+
+      // pending / pending_activation → overwrite password + profile,
+      // promote legacy "pending" docs to the new status name.
+      await doc.ref.set(
+        {
+          ...profileFields,
+          passwordHash,
+          status: "pending_activation",
+          passwordSetAt: now,
+        },
+        { merge: true }
+      );
+      pracharakId = doc.id;
+    } else {
+      const ref = await db.collection("pracharaks").add({
+        ...profileFields,
+        passwordHash,
+        status: "pending_activation",
+        totalCodesPurchased: 0,
+        totalCodesRedeemed: 0,
+        createdAt: now,
+        passwordSetAt: now,
       });
+      pracharakId = ref.id;
     }
 
-    const ref = await db.collection("pracharaks").add({
-      ...profileFields,
-      status: "pending" as const,
-      totalCodesPurchased: 0,
-      totalCodesRedeemed: 0,
-      createdAt: now,
+    // Issue session cookie so the signup form can redirect straight to
+    // the portal — no email round-trip, no admin gate. Status check on
+    // the portal side handles the pending_activation vs approved fork.
+    const token = signSession({
+      role: "pracharak",
+      email: emailLower,
+      docId: pracharakId,
     });
-
-    // Phase 2 polish: send admin a notification email (via sendEmail
-    // helper) so they don't have to keep refreshing /admin/pracharaks.
-    // Skipping for v1 — admin can poll the dashboard.
-    return NextResponse.json({ ok: true, id: ref.id });
+    const res = NextResponse.json({
+      ok: true,
+      id: pracharakId,
+      status: "pending_activation",
+    });
+    res.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions());
+    return res;
   } catch (err) {
     console.error("[pracharak-signup] failed:", err);
     return NextResponse.json(
@@ -92,6 +141,7 @@ function validateBody(body: unknown): string[] {
   if (!isStr(b.name)) errors.push("Name is required.");
   if (!isStr(b.phone)) errors.push("Phone is required.");
   if (!isStr(b.email)) errors.push("Email is required.");
+  if (!isStr(b.password)) errors.push("Password is required.");
 
   if (isStr(b.phone)) {
     const stripped = b.phone.replace(/\s/g, "");
@@ -102,6 +152,14 @@ function validateBody(body: unknown): string[] {
   if (isStr(b.email)) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(b.email)) {
       errors.push("Email is invalid.");
+    }
+  }
+  if (isStr(b.password)) {
+    if (b.password.length < 8) {
+      errors.push("Password must be at least 8 characters.");
+    }
+    if (b.password.length > 128) {
+      errors.push("Password is too long.");
     }
   }
   return errors;

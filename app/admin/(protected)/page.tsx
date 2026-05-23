@@ -17,13 +17,13 @@ export default async function AdminOverviewPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard
-          label="Pending Pracharaks"
-          value={stats.pracharakPending}
+          label="Awaiting Payment"
+          value={stats.pracharakAwaitingPayment}
           accent="saffron"
-          href="/admin/pracharaks?filter=pending"
+          href="/admin/pracharaks?filter=pending_activation"
         />
         <StatCard
-          label="Approved Pracharaks"
+          label="Active Pracharaks"
           value={stats.pracharakApproved}
           accent="gold"
           href="/admin/pracharaks?filter=approved"
@@ -68,7 +68,7 @@ export default async function AdminOverviewPage() {
           href="/admin/pracharaks"
           icon="🪷"
           title="Manage Pracharaks"
-          subtitle="Approve, reject, set passwords"
+          subtitle="View signups · revoke abusive accounts"
         />
         <QuickLink
           href="/admin/orders"
@@ -88,7 +88,7 @@ export default async function AdminOverviewPage() {
 }
 
 interface Stats {
-  pracharakPending: number;
+  pracharakAwaitingPayment: number;
   pracharakApproved: number;
   totalOrders: number;
   codesIssued: number;
@@ -100,9 +100,13 @@ interface Stats {
 
 async function loadStats(): Promise<Stats> {
   const db = adminDb();
-  const [pending, approved, orders, codes, redeemed, premium, pendingAct] =
+  const [awaitingPayment, approved, orders, codes, redeemed, premium, pendingAct] =
     await Promise.all([
-      db.collection("pracharaks").where("status", "==", "pending").count().get(),
+      db
+        .collection("pracharaks")
+        .where("status", "==", "pending_activation")
+        .count()
+        .get(),
       db
         .collection("pracharaks")
         .where("status", "==", "approved")
@@ -140,7 +144,7 @@ async function loadStats(): Promise<Stats> {
   });
 
   return {
-    pracharakPending: pending.data().count,
+    pracharakAwaitingPayment: awaitingPayment.data().count,
     pracharakApproved: approved.data().count,
     totalOrders: orders.data().count,
     codesIssued: codes.data().count,

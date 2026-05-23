@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/session";
+import { adminDb } from "@/lib/firebase-admin";
 
 /**
  * Server-side gate for the pracharak portal. The route group
@@ -8,15 +9,35 @@ import { getServerSession } from "@/lib/session";
  * it can render without auth — preventing the redirect loop that hits
  * when a shared parent layout redirects unauth users to its own login
  * child.
+ *
+ * Status policy:
+ *   - approved / pending_activation → portal renders (pages decide
+ *     what to show based on status)
+ *   - revoked / rejected           → kicked to login (treated as not
+ *     authenticated; their session can't unlock the portal)
  */
-export default function PracharakPortalProtectedLayout({
+export default async function PracharakPortalProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const session = getServerSession();
-  if (!session || session.role !== "pracharak") {
+  if (!session || session.role !== "pracharak" || !session.docId) {
     redirect("/pracharak-portal/login");
+  }
+
+  // Re-check status server-side so a revoked pracharak can't keep using
+  // a still-valid JWT cookie. Doing this in the layout means every
+  // protected page benefits without per-page boilerplate.
+  const db = adminDb();
+  const pSnap = await db.collection("pracharaks").doc(session.docId).get();
+  if (!pSnap.exists) {
+    redirect("/pracharak-portal/login");
+  }
+  const pData = pSnap.data() as { status?: string };
+  const status = pData.status || "";
+  if (status !== "approved" && status !== "pending_activation") {
+    redirect("/pracharak-portal/login?revoked=1");
   }
 
   return (

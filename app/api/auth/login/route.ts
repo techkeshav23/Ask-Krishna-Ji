@@ -146,13 +146,27 @@ export async function POST(req: NextRequest) {
     }
 
     // Password matched. Now we can safely tell the user about their
-    // approval state without leaking account existence to attackers.
-    if (pdata.status !== "approved") {
+    // account state without leaking account existence to attackers.
+    // Self-service signup model: pending_activation is a valid login
+    // state (the portal shows an activation CTA). Only revoked/rejected
+    // accounts and legacy "pending" admin-review records are blocked
+    // here — legacy pending users must re-signup to set a password.
+    const status = pdata.status || "";
+    if (status === "revoked" || status === "rejected") {
+      await padTiming();
+      return NextResponse.json(
+        {
+          error: "This account is not active. Please contact support.",
+        },
+        { status: 403 }
+      );
+    }
+    if (status !== "approved" && status !== "pending_activation") {
       await padTiming();
       return NextResponse.json(
         {
           error:
-            "Your application is not yet approved. Please wait for admin review.",
+            "Your account isn't fully set up. Please re-register to continue.",
         },
         { status: 403 }
       );

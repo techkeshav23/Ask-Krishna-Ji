@@ -242,9 +242,19 @@ async function handleBulkSuccess(cb: PayUCallback): Promise<Response> {
       expiresAt: now + oneYearMs * 1.5,
     });
   }
+  // First successful paid batch auto-activates a pending_activation
+  // pracharak — that's the whole self-service model. Don't downgrade
+  // existing approved/revoked statuses on subsequent purchases.
+  const currentStatus = (pSnap.data() as { status?: string })?.status || "";
+  const statusUpdate =
+    currentStatus === "pending_activation" || currentStatus === "pending"
+      ? { status: "approved", approvedAt: now, approvedVia: "first-purchase" }
+      : {};
+
   batch.update(pRef, {
     totalCodesPurchased: FieldValue.increment(qty),
     lastCodesIssuedAt: now,
+    ...statusUpdate,
   });
   await batch.commit();
 

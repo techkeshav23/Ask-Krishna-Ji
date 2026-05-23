@@ -1,6 +1,13 @@
 import { adminDb } from "@/lib/firebase-admin";
 import PracharakActions from "./PracharakActions";
 
+type PracharakStatus =
+  | "pending"
+  | "pending_activation"
+  | "approved"
+  | "rejected"
+  | "revoked";
+
 interface PracharakDoc {
   id: string;
   name: string;
@@ -10,7 +17,7 @@ interface PracharakDoc {
   city?: string;
   state?: string;
   reference?: string;
-  status: "pending" | "approved" | "rejected";
+  status: PracharakStatus;
   totalCodesPurchased?: number;
   totalCodesRedeemed?: number;
   createdAt?: number;
@@ -32,6 +39,7 @@ export default async function AdminPracharaksPage({
       </div>
       <p className="text-text-secondary text-sm mb-4">
         {rows.length} {rows.length === 1 ? "record" : "records"}
+        {" · Self-service signup — admin only intervenes to revoke abuse."}
       </p>
 
       {rows.length === 0 ? (
@@ -61,7 +69,7 @@ export default async function AdminPracharaksPage({
                     {p.reference ? (
                       <div>👥 Ref: {p.reference}</div>
                     ) : null}
-                    {p.status === "approved" ? (
+                    {p.status === "approved" || p.status === "revoked" ? (
                       <div className="mt-1">
                         🎟️ Purchased: {p.totalCodesPurchased || 0} · Redeemed:{" "}
                         {p.totalCodesRedeemed || 0}
@@ -69,7 +77,7 @@ export default async function AdminPracharaksPage({
                     ) : null}
                   </div>
                 </div>
-                <PracharakActions id={p.id} status={p.status} email={p.email} name={p.name} />
+                <PracharakActions id={p.id} status={p.status} name={p.name} />
               </div>
             </div>
           ))}
@@ -82,20 +90,36 @@ export default async function AdminPracharaksPage({
 async function loadPracharaks(filter: string): Promise<PracharakDoc[]> {
   const db = adminDb();
   let query: FirebaseFirestore.Query = db.collection("pracharaks");
-  if (filter === "pending" || filter === "approved" || filter === "rejected") {
+  if (
+    filter === "pending" ||
+    filter === "pending_activation" ||
+    filter === "approved" ||
+    filter === "rejected" ||
+    filter === "revoked"
+  ) {
     query = query.where("status", "==", filter);
   }
   const snap = await query.orderBy("createdAt", "desc").limit(100).get();
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<PracharakDoc, "id">) }));
 }
 
-const StatusBadge: React.FC<{ status: PracharakDoc["status"] }> = ({ status }) => {
-  const map: Record<PracharakDoc["status"], { bg: string; text: string; label: string }> = {
-    pending: { bg: "bg-yellow-900/30", text: "text-yellow-200", label: "PENDING" },
-    approved: { bg: "bg-green-900/30", text: "text-green-200", label: "APPROVED" },
-    rejected: { bg: "bg-red-900/30", text: "text-red-200", label: "REJECTED" },
-  };
-  const s = map[status];
+const STATUS_STYLES: Record<
+  PracharakStatus,
+  { bg: string; text: string; label: string }
+> = {
+  pending: { bg: "bg-zinc-700/40", text: "text-zinc-300", label: "LEGACY" },
+  pending_activation: {
+    bg: "bg-yellow-900/30",
+    text: "text-yellow-200",
+    label: "AWAITING PAYMENT",
+  },
+  approved: { bg: "bg-green-900/30", text: "text-green-200", label: "ACTIVE" },
+  rejected: { bg: "bg-red-900/30", text: "text-red-200", label: "REJECTED" },
+  revoked: { bg: "bg-red-900/40", text: "text-red-200", label: "REVOKED" },
+};
+
+const StatusBadge: React.FC<{ status: PracharakStatus }> = ({ status }) => {
+  const s = STATUS_STYLES[status] ?? STATUS_STYLES.pending;
   return (
     <span
       className={`text-[10px] font-bold tracking-wide px-2 py-0.5 rounded ${s.bg} ${s.text}`}
@@ -108,12 +132,12 @@ const StatusBadge: React.FC<{ status: PracharakDoc["status"] }> = ({ status }) =
 const FilterTabs: React.FC<{ current: string }> = ({ current }) => {
   const tabs: { id: string; label: string }[] = [
     { id: "all", label: "All" },
-    { id: "pending", label: "Pending" },
-    { id: "approved", label: "Approved" },
-    { id: "rejected", label: "Rejected" },
+    { id: "pending_activation", label: "Awaiting Payment" },
+    { id: "approved", label: "Active" },
+    { id: "revoked", label: "Revoked" },
   ];
   return (
-    <div className="flex gap-2 text-sm">
+    <div className="flex gap-2 text-sm flex-wrap">
       {tabs.map((t) => (
         <a
           key={t.id}
