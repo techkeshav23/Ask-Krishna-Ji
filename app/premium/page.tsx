@@ -10,11 +10,13 @@ function PremiumCheckoutInner() {
   const params = useSearchParams();
   const prefillUid = params.get("uid") || "";
   const prefillEmail = params.get("email") || "";
+  const prefillName = params.get("name") || "";
+  const prefillPhone = (params.get("phone") || "").replace(/\s/g, "");
   const returnUrl = params.get("return") || "";
 
-  const [name, setName] = useState("");
+  const [name, setName] = useState(prefillName);
   const [email, setEmail] = useState(prefillEmail);
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(prefillPhone);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,32 +35,38 @@ function PremiumCheckoutInner() {
     }
   }, [payuFields]);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Auto-submit path: when the app launches checkout it already knows
+  // the user's name/email/phone, so we can skip the form entirely and
+  // go straight to PayU. Triggered only when ALL three prefills are
+  // present and pass basic validation — otherwise we render the form
+  // for the user to fill in / correct.
+  const canAutoSubmit =
+    prefillName.trim().length > 0 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(prefillEmail) &&
+    /^\+?[0-9]{10,13}$/.test(prefillPhone);
+
+  useEffect(() => {
+    if (!canAutoSubmit) return;
+    // Fire once on mount when we have full prefills.
+    void startPayU(prefillName, prefillEmail, prefillPhone);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canAutoSubmit]);
+
+  const startPayU = async (
+    nameVal: string,
+    emailVal: string,
+    phoneVal: string
+  ) => {
     setError(null);
-
-    if (!name.trim()) {
-      setError("Please enter your name.");
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Please enter a valid email.");
-      return;
-    }
-    if (!/^\+?[0-9]{10,13}$/.test(phone.replace(/\s/g, ""))) {
-      setError("Please enter a valid Indian phone number.");
-      return;
-    }
-
     setSubmitting(true);
     try {
       const res = await fetch("/api/payu-init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name,
-          email,
-          phone,
+          name: nameVal,
+          email: emailVal,
+          phone: phoneVal,
           uid: prefillUid,
           returnUrl,
           tier: "premium-yearly",
@@ -78,6 +86,64 @@ function PremiumCheckoutInner() {
     }
   };
 
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!name.trim()) {
+      setError("Please enter your name.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Please enter a valid email.");
+      return;
+    }
+    if (!/^\+?[0-9]{10,13}$/.test(phone.replace(/\s/g, ""))) {
+      setError("Please enter a valid Indian phone number.");
+      return;
+    }
+
+    await startPayU(name, email, phone);
+  };
+
+  // Auto-submit branch: show a "Redirecting to PayU" splash instead of
+  // the form. Once `payuFields` lands, the hidden form auto-POSTs.
+  if (canAutoSubmit && !error) {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-6">
+        <div className="card max-w-md w-full text-center">
+          <div className="text-5xl mb-4">⭐</div>
+          <h1 className="text-2xl font-bold mb-3">Opening secure checkout…</h1>
+          <p className="text-text-secondary mb-6">
+            Connecting you to PayU for ₹{PREMIUM_PRICE} payment.
+          </p>
+          <div className="flex justify-center mb-2">
+            <div className="w-8 h-8 border-2 border-saffron border-t-transparent rounded-full animate-spin" />
+          </div>
+          <p className="text-xs text-text-muted mt-4">
+            कृपया प्रतीक्षा करें · Don't close this page.
+          </p>
+          {payuFields ? (
+            <form
+              ref={payuFormRef}
+              action={payuAction}
+              method="POST"
+              className="hidden"
+            >
+              {Object.entries(payuFields).map(([k, v]) => (
+                <input key={k} name={k} defaultValue={v} type="hidden" />
+              ))}
+            </form>
+          ) : null}
+        </div>
+      </main>
+    );
+  }
+
+  // Manual-entry branch: someone visited /premium directly in a
+  // browser (no prefills) OR the auto-submit failed. Render the form
+  // with any prefills the URL provided, locking the prefilled fields
+  // so we don't silently drift from the app's source of truth.
   return (
     <main className="min-h-screen px-6 py-12">
       <div className="max-w-md mx-auto">
@@ -119,8 +185,11 @@ function PremiumCheckoutInner() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              readOnly={!!prefillName}
               placeholder="आपका नाम"
-              className="w-full bg-bg-primary border border-saffron/30 rounded-lg px-3 py-2 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-saffron"
+              className={`w-full bg-bg-primary border border-saffron/30 rounded-lg px-3 py-2 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-saffron ${
+                prefillName ? "opacity-70 cursor-not-allowed" : ""
+              }`}
             />
           </label>
 
@@ -143,8 +212,7 @@ function PremiumCheckoutInner() {
             {prefillEmail ? (
               <p className="text-xs text-text-muted mt-1">
                 Locked — payment is linked to your app account
-                ({prefillEmail}). Want a different email? Open the
-                premium page in a browser directly.
+                ({prefillEmail}).
               </p>
             ) : null}
           </label>
@@ -158,9 +226,12 @@ function PremiumCheckoutInner() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               required
+              readOnly={!!prefillPhone}
               placeholder="10-digit mobile"
               inputMode="tel"
-              className="w-full bg-bg-primary border border-saffron/30 rounded-lg px-3 py-2 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-saffron"
+              className={`w-full bg-bg-primary border border-saffron/30 rounded-lg px-3 py-2 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-saffron ${
+                prefillPhone ? "opacity-70 cursor-not-allowed" : ""
+              }`}
             />
           </label>
 
