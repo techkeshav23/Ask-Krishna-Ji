@@ -3,26 +3,18 @@ import Link from "next/link";
 import { getServerSession } from "@/lib/session";
 
 /**
- * Layout for all /admin/* pages. Server-side gate:
- *  - No session → redirect to /admin/login
- *  - Non-admin role → redirect to /admin/login
- *
- * Children render only for authenticated admin sessions.
- *
- * /admin/login itself is excluded — it has its own layout-bypassing
- * page (handled via the conditional below).
+ * Server-side gate for protected admin pages. The route group
+ * (`(protected)`) keeps /admin/login outside this layout so it can
+ * render without auth — preventing the redirect loop that hits when a
+ * shared parent layout redirects unauth users to its own login child.
  */
-export default function AdminLayout({
+export default function AdminProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const session = getServerSession();
-
   if (!session || session.role !== "admin") {
-    // Allow /admin/login to render without auth — Next handles this via
-    // its own page-level component; the layout shouldn't be reached for
-    // it normally. Belt + suspenders: redirect to login.
     redirect("/admin/login");
   }
 

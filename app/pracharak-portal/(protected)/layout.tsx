@@ -3,10 +3,13 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/session";
 
 /**
- * Pracharak portal — gated for authenticated pracharak sessions only.
- * /pracharak-portal/login bypasses via its own nested layout.
+ * Server-side gate for the pracharak portal. The route group
+ * (`(protected)`) keeps /pracharak-portal/login outside this layout so
+ * it can render without auth — preventing the redirect loop that hits
+ * when a shared parent layout redirects unauth users to its own login
+ * child.
  */
-export default function PracharakPortalLayout({
+export default function PracharakPortalProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
