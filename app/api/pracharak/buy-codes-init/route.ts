@@ -85,7 +85,13 @@ export async function POST(req: NextRequest) {
     const order: PayUOrderInput = {
       txnid,
       amount: `${total}.00`,
-      productinfo: `Ask Krishna Ji — ${qty} Subscription Codes (Pracharak Bulk)`,
+      // ASCII-only productinfo. PayU re-encodes non-ASCII characters
+      // (e.g. an em-dash `—` becomes `&mdash;`) in the callback before
+      // computing the response hash on their side, but our verifier
+      // sees the encoded form too — meaning if we send `—`, the hash
+      // we re-derive won't match theirs. Keep this string plain ASCII
+      // (regular hyphen, parens, digits, letters) to avoid mismatches.
+      productinfo: `Ask Krishna Ji - ${qty} Subscription Codes (Pracharak Bulk)`,
       firstname: pData.name,
       email: pData.email,
       phone,

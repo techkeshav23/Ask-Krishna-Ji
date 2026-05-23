@@ -117,6 +117,13 @@ export const verifyResponseHash = (
   cb: PayUCallback,
   salt: string
 ): boolean => {
+  // PayU re-encodes HTML entities in some string fields (e.g. an em-
+  // dash `—` becomes `&mdash;`, `&` becomes `&amp;`) when it echoes
+  // them back in the callback. But the hash on their side is computed
+  // against the ORIGINAL pre-encoding values — so we must decode
+  // before hashing or every callback fails as a "spoof". Init code
+  // should still stick to ASCII as primary defense; this decoder is a
+  // safety net for cases like a user's name containing an apostrophe.
   const baseParts = [
     salt,
     cb.status,
@@ -129,14 +136,14 @@ export const verifyResponseHash = (
     "",
     "",
     "",
-    cb.udf5 ?? "",
-    cb.udf4 ?? "",
-    cb.udf3 ?? "",
-    cb.udf2 ?? "",
-    cb.udf1 ?? "",
-    cb.email,
-    cb.firstname,
-    cb.productinfo,
+    htmlDecode(cb.udf5 ?? ""),
+    htmlDecode(cb.udf4 ?? ""),
+    htmlDecode(cb.udf3 ?? ""),
+    htmlDecode(cb.udf2 ?? ""),
+    htmlDecode(cb.udf1 ?? ""),
+    htmlDecode(cb.email),
+    htmlDecode(cb.firstname),
+    htmlDecode(cb.productinfo),
     cb.amount,
     cb.txnid,
     cb.key,
@@ -164,6 +171,30 @@ export const verifyResponseHash = (
     });
   }
   return ok;
+};
+
+/**
+ * Decode the small set of HTML entities PayU has been observed to
+ * inject into echoed fields. Numeric entities (`&#nn;`, `&#xHH;`) and
+ * the named entities below cover ~all real-world cases. `&amp;` runs
+ * LAST so we don't accidentally double-decode something like
+ * `&amp;mdash;` (which should resolve to literal `&mdash;`, not `—`).
+ */
+const htmlDecode = (s: string): string => {
+  if (!s) return s;
+  return s
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&mdash;/g, "—")
+    .replace(/&ndash;/g, "–")
+    .replace(/&hellip;/g, "…")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)))
+    .replace(/&amp;/g, "&");
 };
 
 /**
