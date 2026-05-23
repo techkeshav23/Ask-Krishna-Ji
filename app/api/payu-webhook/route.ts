@@ -314,6 +314,11 @@ async function recordOrder(
 
 function formDataToCallback(form: FormData): PayUCallback {
   const s = (key: string) => (form.get(key) || "").toString();
+  // PayU has shipped both `additionalCharges` and `additional_charges`
+  // in the wild — accept either spelling so we don't end up tripping
+  // on a docs/SDK inconsistency.
+  const additionalCharges =
+    s("additionalCharges") || s("additional_charges") || "";
   return {
     status: s("status"),
     email: s("email"),
@@ -332,6 +337,7 @@ function formDataToCallback(form: FormData): PayUCallback {
     mode: s("mode"),
     bank_ref_num: s("bank_ref_num"),
     bankcode: s("bankcode"),
+    additionalCharges: additionalCharges || undefined,
   };
 }
 

@@ -87,6 +87,18 @@ export interface PayUCallback {
   mode?: string;
   bank_ref_num?: string;
   bankcode?: string;
+  /**
+   * PayU appends an `additional_charges` field to the response (and
+   * prepends it to the hash) when convenience fee / surcharge is in
+   * play — most commonly with credit cards. We MUST include it in the
+   * verification formula when present, otherwise the recomputed hash
+   * won't match and every payment looks invalid.
+   *
+   * Field name varies between docs (`additionalCharges` vs
+   * `additional_charges`) — we accept either at the form-parse layer
+   * and normalise to this field.
+   */
+  additionalCharges?: string;
 }
 
 /**
@@ -96,12 +108,16 @@ export interface PayUCallback {
  *
  * Response hash formula:
  *   sha512(salt|status|||||||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key)
+ *
+ * When PayU adds convenience-fee surcharge, an `additionalCharges`
+ * field is prepended:
+ *   sha512(additionalCharges|salt|status|||||||||||udf5|...|key)
  */
 export const verifyResponseHash = (
   cb: PayUCallback,
   salt: string
 ): boolean => {
-  const parts = [
+  const baseParts = [
     salt,
     cb.status,
     "",
@@ -125,8 +141,25 @@ export const verifyResponseHash = (
     cb.txnid,
     cb.key,
   ];
+  const parts = cb.additionalCharges
+    ? [cb.additionalCharges, ...baseParts]
+    : baseParts;
   const expected = CryptoJS.SHA512(parts.join("|")).toString(CryptoJS.enc.Hex);
-  return timingSafeEqualHex(expected, cb.hash);
+  const ok = timingSafeEqualHex(expected, cb.hash);
+  if (!ok) {
+    // Diagnostic log — kept lean so it doesn't leak secrets but useful
+    // when integrating: caller can see what we hashed vs what came in.
+    console.warn("[payu] response hash mismatch", {
+      txnid: cb.txnid,
+      status: cb.status,
+      hasAdditionalCharges: !!cb.additionalCharges,
+      receivedHashLen: cb.hash?.length,
+      expectedHashLen: expected.length,
+      receivedPrefix: (cb.hash || "").slice(0, 12),
+      expectedPrefix: expected.slice(0, 12),
+    });
+  }
+  return ok;
 };
 
 /**
