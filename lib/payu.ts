@@ -144,19 +144,23 @@ export const verifyResponseHash = (
   const parts = cb.additionalCharges
     ? [cb.additionalCharges, ...baseParts]
     : baseParts;
-  const expected = CryptoJS.SHA512(parts.join("|")).toString(CryptoJS.enc.Hex);
+  const hashString = parts.join("|");
+  const expected = CryptoJS.SHA512(hashString).toString(CryptoJS.enc.Hex);
   const ok = timingSafeEqualHex(expected, cb.hash);
   if (!ok) {
-    // Diagnostic log — kept lean so it doesn't leak secrets but useful
-    // when integrating: caller can see what we hashed vs what came in.
+    // Verbose diagnostic — temporary while integrating. Logs exactly
+    // what we hashed (with salt masked) so a mismatch is debuggable
+    // without running the salt back through Vercel logs.
+    const maskedHashString = hashString.replace(salt, "***SALT***");
     console.warn("[payu] response hash mismatch", {
       txnid: cb.txnid,
       status: cb.status,
       hasAdditionalCharges: !!cb.additionalCharges,
-      receivedHashLen: cb.hash?.length,
-      expectedHashLen: expected.length,
-      receivedPrefix: (cb.hash || "").slice(0, 12),
-      expectedPrefix: expected.slice(0, 12),
+      additionalChargesValue: cb.additionalCharges,
+      expectedHashFull: expected,
+      receivedHashFull: cb.hash,
+      hashStringMasked: maskedHashString,
+      hashStringLen: hashString.length,
     });
   }
   return ok;

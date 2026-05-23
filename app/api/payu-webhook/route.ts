@@ -33,7 +33,30 @@ export async function POST(req: NextRequest) {
     const cb = formDataToCallback(form);
 
     if (!verifyResponseHash(cb, salt)) {
-      console.warn("[payu-webhook] hash mismatch — possible spoof");
+      // Verbose diagnostic — temporary while integrating. Lists every
+      // form field PayU sent (names + lengths only, no values) so we
+      // can spot a missing or unexpected field driving the mismatch.
+      const fieldSummary: Record<string, number> = {};
+      form.forEach((value, key) => {
+        fieldSummary[key] = String(value).length;
+      });
+      console.warn("[payu-webhook] hash mismatch — possible spoof", {
+        txnid: cb.txnid,
+        status: cb.status,
+        keyPresent: !!cb.key,
+        emailLen: cb.email?.length,
+        firstnameLen: cb.firstname?.length,
+        productinfoLen: cb.productinfo?.length,
+        productinfoFirst20: cb.productinfo?.slice(0, 20),
+        amountValue: cb.amount,
+        udf1Len: cb.udf1?.length ?? 0,
+        udf2Len: cb.udf2?.length ?? 0,
+        udf3Len: cb.udf3?.length ?? 0,
+        udf4Len: cb.udf4?.length ?? 0,
+        udf5Len: cb.udf5?.length ?? 0,
+        receivedHashFull: cb.hash,
+        allFormFields: fieldSummary,
+      });
       return htmlRedirect("/premium-failed?reason=invalid");
     }
 
