@@ -113,6 +113,129 @@ export interface PayUCallback {
  * field is prepended:
  *   sha512(additionalCharges|salt|status|||||||||||udf5|...|key)
  */
+/**
+ * Helper that returns the verification artifacts so callers can log
+ * everything in a single log line when verification fails.
+ */
+export interface PayUHashDebug {
+  ok: boolean;
+  expectedHash: string;
+  receivedHash: string;
+  hashStringMasked: string;
+  formulaVariant: string;
+}
+
+export const verifyResponseHashDebug = (
+  cb: PayUCallback,
+  salt: string
+): PayUHashDebug => {
+  // Try every known formula variant and return the first match. This
+  // lets us survive PayU's published-formula disagreements between
+  // their docs vs SDK examples, and tells us in the logs WHICH variant
+  // matched so we can simplify later.
+  const candidates = buildVerificationCandidates(cb, salt);
+  for (const c of candidates) {
+    const expected = CryptoJS.SHA512(c.hashString).toString(CryptoJS.enc.Hex);
+    if (timingSafeEqualHex(expected, cb.hash)) {
+      return {
+        ok: true,
+        expectedHash: expected,
+        receivedHash: cb.hash,
+        hashStringMasked: c.hashString.replace(salt, "***SALT***"),
+        formulaVariant: c.name,
+      };
+    }
+  }
+  // No match — return the canonical variant for diagnostic logging.
+  const canonical = candidates[0]!;
+  const expected = CryptoJS.SHA512(canonical.hashString).toString(
+    CryptoJS.enc.Hex
+  );
+  return {
+    ok: false,
+    expectedHash: expected,
+    receivedHash: cb.hash,
+    hashStringMasked: canonical.hashString.replace(salt, "***SALT***"),
+    formulaVariant: canonical.name,
+  };
+};
+
+const buildVerificationCandidates = (
+  cb: PayUCallback,
+  salt: string
+): { name: string; hashString: string }[] => {
+  // Decoded vs raw — covers HTML entities like &mdash; / &amp;.
+  const fieldSets = [
+    {
+      tag: "decoded",
+      productinfo: htmlDecode(cb.productinfo),
+      firstname: htmlDecode(cb.firstname),
+      email: htmlDecode(cb.email),
+      udf1: htmlDecode(cb.udf1 ?? ""),
+      udf2: htmlDecode(cb.udf2 ?? ""),
+      udf3: htmlDecode(cb.udf3 ?? ""),
+      udf4: htmlDecode(cb.udf4 ?? ""),
+      udf5: htmlDecode(cb.udf5 ?? ""),
+    },
+    {
+      tag: "raw",
+      productinfo: cb.productinfo,
+      firstname: cb.firstname,
+      email: cb.email,
+      udf1: cb.udf1 ?? "",
+      udf2: cb.udf2 ?? "",
+      udf3: cb.udf3 ?? "",
+      udf4: cb.udf4 ?? "",
+      udf5: cb.udf5 ?? "",
+    },
+  ];
+  const candidates: { name: string; hashString: string }[] = [];
+  for (const fs of fieldSets) {
+    // Variant A: docs formula — 10 empty fields between status and udf5
+    const partsA = [
+      salt,
+      cb.status,
+      "", "", "", "", "", "", "", "", "",
+      fs.udf5, fs.udf4, fs.udf3, fs.udf2, fs.udf1,
+      fs.email, fs.firstname, fs.productinfo,
+      cb.amount, cb.txnid, cb.key,
+    ];
+    candidates.push({ name: `docs-${fs.tag}`, hashString: partsA.join("|") });
+
+    // Variant B: alternate SDK formula — 9 empty fields between status
+    // and udf5 (some PayU SDK examples ship one fewer empty pipe).
+    const partsB = [
+      salt,
+      cb.status,
+      "", "", "", "", "", "", "", "", // 9 empties
+      fs.udf5, fs.udf4, fs.udf3, fs.udf2, fs.udf1,
+      fs.email, fs.firstname, fs.productinfo,
+      cb.amount, cb.txnid, cb.key,
+    ];
+    candidates.push({ name: `sdk-${fs.tag}`, hashString: partsB.join("|") });
+
+    // Variant D: 11 empty fields (some integrations use this)
+    const partsD = [
+      salt,
+      cb.status,
+      "", "", "", "", "", "", "", "", "", "", // 11 empties
+      fs.udf5, fs.udf4, fs.udf3, fs.udf2, fs.udf1,
+      fs.email, fs.firstname, fs.productinfo,
+      cb.amount, cb.txnid, cb.key,
+    ];
+    candidates.push({ name: `extra-empty-${fs.tag}`, hashString: partsD.join("|") });
+
+    // Variant C: with additionalCharges prepended
+    if (cb.additionalCharges) {
+      candidates.push({
+        name: `additionalCharges-${fs.tag}`,
+        hashString: [cb.additionalCharges, ...partsA].join("|"),
+      });
+    }
+  }
+  return candidates;
+};
+
 export const verifyResponseHash = (
   cb: PayUCallback,
   salt: string

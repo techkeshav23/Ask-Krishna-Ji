@@ -1,5 +1,8 @@
 import { NextRequest } from "next/server";
-import { verifyResponseHash, type PayUCallback } from "@/lib/payu";
+import {
+  verifyResponseHashDebug,
+  type PayUCallback,
+} from "@/lib/payu";
 import { adminDb } from "@/lib/firebase-admin";
 import { sendEmail, renderPremiumInvoiceHtml } from "@/lib/email";
 import { generateCode } from "@/lib/codes";
@@ -32,32 +35,34 @@ export async function POST(req: NextRequest) {
     const form = await req.formData();
     const cb = formDataToCallback(form);
 
-    if (!verifyResponseHash(cb, salt)) {
-      // Verbose diagnostic — temporary while integrating. Lists every
-      // form field PayU sent (names + lengths only, no values) so we
-      // can spot a missing or unexpected field driving the mismatch.
-      const fieldSummary: Record<string, number> = {};
-      form.forEach((value, key) => {
-        fieldSummary[key] = String(value).length;
-      });
-      console.warn("[payu-webhook] hash mismatch — possible spoof", {
+    // Multi-variant verification: tries docs / SDK / additionalCharges
+    // / decoded permutations and reports which one matched.
+    const debug = verifyResponseHashDebug(cb, salt);
+    if (!debug.ok) {
+      console.warn("[payu-webhook] hash mismatch — all variants failed", {
         txnid: cb.txnid,
         status: cb.status,
-        keyPresent: !!cb.key,
-        emailLen: cb.email?.length,
-        firstnameLen: cb.firstname?.length,
-        productinfoLen: cb.productinfo?.length,
-        productinfoFirst20: cb.productinfo?.slice(0, 20),
+        productinfoFull: cb.productinfo,
+        firstnameFull: cb.firstname,
+        emailFull: cb.email,
         amountValue: cb.amount,
-        udf1Len: cb.udf1?.length ?? 0,
-        udf2Len: cb.udf2?.length ?? 0,
-        udf3Len: cb.udf3?.length ?? 0,
-        udf4Len: cb.udf4?.length ?? 0,
-        udf5Len: cb.udf5?.length ?? 0,
-        receivedHashFull: cb.hash,
-        allFormFields: fieldSummary,
+        udf1: cb.udf1,
+        udf2: cb.udf2,
+        udf3: cb.udf3,
+        udf4: cb.udf4,
+        udf5: cb.udf5,
+        keyValue: cb.key,
+        additionalCharges: cb.additionalCharges,
+        receivedHash: debug.receivedHash,
+        canonicalExpectedHash: debug.expectedHash,
+        canonicalHashStringMasked: debug.hashStringMasked,
       });
       return htmlRedirect("/premium-failed?reason=invalid");
+    }
+    if (debug.formulaVariant !== "docs-decoded") {
+      console.info(
+        `[payu-webhook] hash matched via non-canonical variant: ${debug.formulaVariant}`
+      );
     }
 
     const tier = (cb.udf2 || "premium-yearly").trim();
