@@ -38,6 +38,27 @@ export interface PayUOrderInput {
 }
 
 /**
+ * Characters PayU silently rewrites in echoed callback fields,
+ * breaking hash verification because the rewrite happens AFTER they
+ * computed their hash against the original. Discovered via diagnostic
+ * logs from a bulk-purchase test where `(Pracharak Bulk)` came back
+ * as ` Pracharak Bulk ` and every payment then failed as a "spoof."
+ *
+ * Restricting init-time strings to the safe set is the only durable
+ * fix — encoding-aware verification can't reverse a substitution
+ * that already lost the original chars.
+ */
+const PAYU_UNSAFE_CHARS = /[()<>{}\[\]"'`\\&]/g;
+
+const assertPayuSafe = (value: string, fieldName: string): void => {
+  if (PAYU_UNSAFE_CHARS.test(value)) {
+    throw new Error(
+      `[payu] ${fieldName} contains characters PayU rewrites in callbacks (one of: () <> {} [] " ' \` \\ &) — these break hash verification. Got: ${JSON.stringify(value)}`
+    );
+  }
+};
+
+/**
  * Builds the request hash that PayU's checkout form needs.
  * Formula: sha512(key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5||||||salt)
  */
@@ -46,6 +67,10 @@ export const buildRequestHash = (
   key: string,
   salt: string
 ): string => {
+  // Guardrails: catch unsafe chars at init time so a single bad
+  // productinfo string can't silently break every payment in prod.
+  assertPayuSafe(input.productinfo, "productinfo");
+  assertPayuSafe(input.firstname, "firstname");
   const parts = [
     key,
     input.txnid,
