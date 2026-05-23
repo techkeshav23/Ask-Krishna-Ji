@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+build/
+.env*.local
+.env.production
+.vercel
+*.log
+.DS_Store
+
+# Firebase admin credentials — NEVER commit
+firebase-admin-key.json
+serviceAccountKey.json

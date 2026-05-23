@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-bg-primary text-text-primary;
+  }
+  body {
+    @apply font-devanagari antialiased;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-saffron text-white font-bold px-6 py-3 rounded-xl
+           shadow-lg hover:bg-saffron-dark transition-colors
+           disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .btn-gold {
+    @apply bg-gold text-white font-bold px-6 py-3 rounded-xl
+           shadow-lg hover:bg-gold-dim transition-colors
+           disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .card {
+    @apply bg-bg-secondary border border-saffron/20 rounded-2xl
+           p-6 shadow-xl;
+  }
+}
