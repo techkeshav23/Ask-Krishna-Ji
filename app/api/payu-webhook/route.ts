@@ -56,6 +56,11 @@ export async function POST(req: NextRequest) {
         receivedHash: debug.receivedHash,
         canonicalExpectedHash: debug.expectedHash,
         canonicalHashStringMasked: debug.hashStringMasked,
+        // Salt sanity: length + last 3 chars (NOT the secret bulk) so
+        // we can detect a Vercel env-var paste error without leaking
+        // the salt itself.
+        saltLen: salt.length,
+        saltLast3: salt.slice(-3),
       });
       return htmlRedirect("/premium-failed?reason=invalid");
     }

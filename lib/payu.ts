@@ -192,17 +192,6 @@ const buildVerificationCandidates = (
   // Decoded vs raw — covers HTML entities like &mdash; / &amp;.
   const fieldSets = [
     {
-      tag: "decoded",
-      productinfo: htmlDecode(cb.productinfo),
-      firstname: htmlDecode(cb.firstname),
-      email: htmlDecode(cb.email),
-      udf1: htmlDecode(cb.udf1 ?? ""),
-      udf2: htmlDecode(cb.udf2 ?? ""),
-      udf3: htmlDecode(cb.udf3 ?? ""),
-      udf4: htmlDecode(cb.udf4 ?? ""),
-      udf5: htmlDecode(cb.udf5 ?? ""),
-    },
-    {
       tag: "raw",
       productinfo: cb.productinfo,
       firstname: cb.firstname,
@@ -213,50 +202,64 @@ const buildVerificationCandidates = (
       udf4: cb.udf4 ?? "",
       udf5: cb.udf5 ?? "",
     },
+    {
+      tag: "decoded",
+      productinfo: htmlDecode(cb.productinfo),
+      firstname: htmlDecode(cb.firstname),
+      email: htmlDecode(cb.email),
+      udf1: htmlDecode(cb.udf1 ?? ""),
+      udf2: htmlDecode(cb.udf2 ?? ""),
+      udf3: htmlDecode(cb.udf3 ?? ""),
+      udf4: htmlDecode(cb.udf4 ?? ""),
+      udf5: htmlDecode(cb.udf5 ?? ""),
+    },
   ];
   const candidates: { name: string; hashString: string }[] = [];
-  for (const fs of fieldSets) {
-    // Variant A: docs formula — 10 empty fields between status and udf5
-    const partsA = [
-      salt,
-      cb.status,
-      "", "", "", "", "", "", "", "", "",
-      fs.udf5, fs.udf4, fs.udf3, fs.udf2, fs.udf1,
-      fs.email, fs.firstname, fs.productinfo,
-      cb.amount, cb.txnid, cb.key,
-    ];
-    candidates.push({ name: `docs-${fs.tag}`, hashString: partsA.join("|") });
+  // Amount variants — PayU sometimes strips trailing zeros or treats
+  // integer amounts without the decimal portion.
+  const amountVariants = [cb.amount];
+  if (cb.amount.endsWith(".00")) {
+    amountVariants.push(cb.amount.slice(0, -3)); // "2500.00" → "2500"
+  }
+  if (!cb.amount.includes(".")) {
+    amountVariants.push(`${cb.amount}.00`);
+  }
 
-    // Variant B: alternate SDK formula — 9 empty fields between status
-    // and udf5 (some PayU SDK examples ship one fewer empty pipe).
-    const partsB = [
-      salt,
-      cb.status,
-      "", "", "", "", "", "", "", "", // 9 empties
-      fs.udf5, fs.udf4, fs.udf3, fs.udf2, fs.udf1,
-      fs.email, fs.firstname, fs.productinfo,
-      cb.amount, cb.txnid, cb.key,
-    ];
-    candidates.push({ name: `sdk-${fs.tag}`, hashString: partsB.join("|") });
-
-    // Variant D: 11 empty fields (some integrations use this)
-    const partsD = [
-      salt,
-      cb.status,
-      "", "", "", "", "", "", "", "", "", "", // 11 empties
-      fs.udf5, fs.udf4, fs.udf3, fs.udf2, fs.udf1,
-      fs.email, fs.firstname, fs.productinfo,
-      cb.amount, cb.txnid, cb.key,
-    ];
-    candidates.push({ name: `extra-empty-${fs.tag}`, hashString: partsD.join("|") });
-
-    // Variant C: with additionalCharges prepended
-    if (cb.additionalCharges) {
-      candidates.push({
-        name: `additionalCharges-${fs.tag}`,
-        hashString: [cb.additionalCharges, ...partsA].join("|"),
-      });
+  const buildPrefixVariants = (
+    prefix: string[],
+    prefixLabel: string
+  ): void => {
+    for (const fs of fieldSets) {
+      for (const amt of amountVariants) {
+        // Brute-force pipe count between status and udf5: PayU SDKs
+        // across versions ship anywhere from 5 to 11 empty fields here;
+        // their docs and code disagree, so test every plausible count.
+        for (let emptyCount = 4; emptyCount <= 12; emptyCount++) {
+          const empties = Array(emptyCount).fill("");
+          const parts = [
+            ...prefix,
+            cb.status,
+            ...empties,
+            fs.udf5, fs.udf4, fs.udf3, fs.udf2, fs.udf1,
+            fs.email, fs.firstname, fs.productinfo,
+            amt, cb.txnid, cb.key,
+          ];
+          candidates.push({
+            name: `${prefixLabel}-empties${emptyCount}-${fs.tag}-amt${amt}`,
+            hashString: parts.join("|"),
+          });
+        }
+      }
     }
+  };
+
+  // Prefix variants — PayU has shipped formulas with cardType,
+  // additionalCharges, or both prepended between salt and status.
+  buildPrefixVariants([salt], "plain");
+  buildPrefixVariants([salt, cb.additionalCharges || ""], "with-charges-empty");
+  if (cb.additionalCharges) {
+    buildPrefixVariants([cb.additionalCharges, salt], "charges-before-salt");
+    buildPrefixVariants([salt, cb.additionalCharges], "charges-after-salt");
   }
   return candidates;
 };
