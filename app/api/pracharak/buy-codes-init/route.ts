@@ -63,7 +63,25 @@ export async function POST(req: NextRequest) {
       name: string;
       email: string;
       phone: string;
+      status?: string;
     };
+
+    // Re-check status server-side on every purchase initiation. The
+    // session JWT lives 7 days; a pracharak who was revoked yesterday
+    // can otherwise still hit this endpoint with a stale cookie and
+    // initiate (and complete) a purchase. The protected portal layout
+    // does its own status check, but API routes must NOT trust the
+    // layout — they're independent entry points.
+    const status = pData.status || "";
+    if (status !== "approved" && status !== "pending_activation") {
+      return NextResponse.json(
+        {
+          error:
+            "Your account is not active. Please contact support.",
+        },
+        { status: 403 }
+      );
+    }
 
     // PayU validates phone format. We refuse to send a fake fallback
     // because a bad phone breaks the entire payment flow — better to

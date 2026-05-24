@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
+import { adminDb, verifyAuthHeader } from "@/lib/firebase-admin";
 import { isValidCodeFormat, normalizeCode } from "@/lib/codes";
 import { FieldValue } from "firebase-admin/firestore";
 
 /**
  * POST /api/redeem-code
- * Body: { code, uid, email }
+ * Headers: Authorization: Bearer <firebase-id-token>
+ * Body: { code }
  *
  * Called from the mobile app's Profile screen. Validates a subscription
- * code, marks it redeemed, and activates premium for the user.
+ * code, marks it redeemed, and activates premium for the verified user.
+ *
+ * Auth: requires a valid Firebase ID token. uid + email come from the
+ * decoded token, NEVER from the request body — otherwise an attacker
+ * could submit any victim's uid and either (a) burn a stolen code into
+ * their account or (b) grant themselves premium with a code they don't
+ * own. Previous version trusted body uid/email; that's now removed.
  *
  * Idempotent guard: if the same code is submitted twice, the second
  * call fails cleanly (no double-grant of premium).
@@ -18,10 +25,20 @@ import { FieldValue } from "firebase-admin/firestore";
  */
 export async function POST(req: NextRequest) {
   try {
+    // Auth required — derive uid/email from the verified token. The
+    // body is only trusted for the code value.
+    const decoded = await verifyAuthHeader(req.headers.get("authorization"));
+    if (!decoded?.uid) {
+      return NextResponse.json(
+        { error: "Sign in required to redeem a code." },
+        { status: 401 }
+      );
+    }
+    const uid = decoded.uid;
+    const email = (decoded.email || "").trim().toLowerCase();
+
     const body = await req.json();
     const rawCode = String(body.code || "");
-    const uid = String(body.uid || "").trim();
-    const email = String(body.email || "").trim().toLowerCase();
 
     const code = normalizeCode(rawCode);
     if (!isValidCodeFormat(code)) {
@@ -30,12 +47,6 @@ export async function POST(req: NextRequest) {
           error:
             "Invalid code format. Codes look like AKJ-XXXX-YYYY-ZZZZ.",
         },
-        { status: 400 }
-      );
-    }
-    if (!uid && !email) {
-      return NextResponse.json(
-        { error: "User identity (uid or email) is required." },
         { status: 400 }
       );
     }

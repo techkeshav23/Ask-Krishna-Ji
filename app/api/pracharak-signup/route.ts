@@ -59,7 +59,10 @@ export async function POST(req: NextRequest) {
 
     if (!existing.empty) {
       const doc = existing.docs[0]!;
-      const current = doc.data() as { status?: string };
+      const current = doc.data() as {
+        status?: string;
+        passwordHash?: string;
+      };
       const status = current.status || "pending";
 
       if (status === "approved") {
@@ -81,8 +84,29 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // pending / pending_activation → overwrite password + profile,
-      // promote legacy "pending" docs to the new status name.
+      // SECURITY: previously this branch overwrote passwordHash + profile
+      // for any pending_activation pracharak. That meant anyone who knew
+      // a pracharak's email could re-submit signup with their own
+      // password and silently take over the account (the original owner
+      // had not yet paid, but their email + intent was already stolen).
+      //
+      // New policy: refuse the second signup if a password was already
+      // set on the existing record. The legitimate owner can use the
+      // login form; a forgotten-password path will be added separately
+      // (admin-mediated reset for now). Only legacy "pending" docs
+      // without a passwordHash are still upgraded since those were
+      // created by the old admin-approval flow and have no owner to
+      // protect.
+      if (current.passwordHash) {
+        return NextResponse.json(
+          {
+            error:
+              "This email is already registered. Please log in instead.",
+          },
+          { status: 409 }
+        );
+      }
+
       await doc.ref.set(
         {
           ...profileFields,

@@ -69,15 +69,45 @@ export async function POST(req: NextRequest) {
 async function handlePremiumSuccess(cb: PayUCallback): Promise<Response> {
   const db = adminDb();
 
-  // Idempotency: if PayU retries the success webhook (network blip,
-  // dashboard reprocess), we must NOT re-activate premium or re-email.
-  // The order doc is keyed by txnid — its prior success means we've
-  // already done the work. Re-emailing or double-processing creates
-  // accounting drift and user confusion.
-  const existing = await db.collection("orders").doc(cb.txnid).get();
-  if (existing.exists && (existing.data() as { status?: string }).status === "success") {
-    console.info(`[payu-webhook premium] duplicate success ignored: ${cb.txnid}`);
-    const returnDeepLink = (cb.udf3 || "").trim();
+  // Idempotency: PayU retries the success webhook on network blips +
+  // dashboard reprocesses. Earlier we did a read-then-set, but that
+  // had a race — two concurrent webhook deliveries could both see
+  // "no existing doc" and both proceed, double-activating premium or
+  // sending two invoice emails. Now we attempt to create() a
+  // "processing" marker; create() fails with ALREADY_EXISTS if any
+  // other delivery already raced past us. Only the winner does the
+  // side effects; everyone else short-circuits.
+  const orderRef = db.collection("orders").doc(cb.txnid);
+  const returnDeepLink = (cb.udf3 || "").trim();
+  try {
+    await orderRef.create({
+      txnid: cb.txnid,
+      status: "processing",
+      tier: "premium-yearly",
+      createdAt: Date.now(),
+    });
+  } catch (createErr) {
+    // ALREADY_EXISTS — another invocation got here first. Read the
+    // current state to decide what to redirect to.
+    const existing = await orderRef.get();
+    const data = (existing.data() as { status?: string }) || {};
+    if (data.status === "success") {
+      console.info(
+        `[payu-webhook premium] duplicate success ignored: ${cb.txnid}`
+      );
+      const successUrl =
+        `/premium-success?txn=${encodeURIComponent(cb.txnid)}` +
+        (returnDeepLink ? `&return=${encodeURIComponent(returnDeepLink)}` : "");
+      return htmlRedirect(successUrl);
+    }
+    // status === "processing" means a concurrent invocation is still
+    // working. Returning success is safe: the user lands on the success
+    // page and the other invocation will write status=success when
+    // done. The redirect doesn't promise instant activation.
+    console.warn(
+      "[payu-webhook premium] concurrent processing — letting peer finish",
+      { txnid: cb.txnid, createErr: String(createErr).slice(0, 120) }
+    );
     const successUrl =
       `/premium-success?txn=${encodeURIComponent(cb.txnid)}` +
       (returnDeepLink ? `&return=${encodeURIComponent(returnDeepLink)}` : "");
@@ -183,18 +213,36 @@ async function handlePremiumSuccess(cb: PayUCallback): Promise<Response> {
 async function handleBulkSuccess(cb: PayUCallback): Promise<Response> {
   const db = adminDb();
 
-  // Idempotency — far more important here than for premium because the
-  // side effect is creating N new code records + an email. A duplicate
-  // webhook would double-issue codes and email twice. The order doc is
-  // the authoritative once-per-txnid marker; if it's already success,
-  // bail out cleanly without re-processing.
-  const existing = await db.collection("orders").doc(cb.txnid).get();
-  if (existing.exists && (existing.data() as { status?: string }).status === "success") {
-    console.info(`[payu-webhook bulk] duplicate success ignored: ${cb.txnid}`);
-    const qty0 = (cb.udf4 || "").trim();
-    return htmlRedirect(
-      `/pracharak-portal?bulkSuccess=${encodeURIComponent(cb.txnid)}${qty0 ? `&qty=${qty0}` : ""}`
+  // Idempotency via create() — see handlePremiumSuccess for the full
+  // race rationale. Even more important here because the side effects
+  // are N code records + an email of those codes. A duplicate webhook
+  // pre-fix could double-issue 500 codes and double-email.
+  const orderRef = db.collection("orders").doc(cb.txnid);
+  const qty0 = (cb.udf4 || "").trim();
+  const bulkSuccessUrl = `/pracharak-portal?bulkSuccess=${encodeURIComponent(
+    cb.txnid
+  )}${qty0 ? `&qty=${qty0}` : ""}`;
+  try {
+    await orderRef.create({
+      txnid: cb.txnid,
+      status: "processing",
+      tier: cb.udf2 || "pracharak-bulk",
+      createdAt: Date.now(),
+    });
+  } catch (createErr) {
+    const existing = await orderRef.get();
+    const data = (existing.data() as { status?: string }) || {};
+    if (data.status === "success") {
+      console.info(
+        `[payu-webhook bulk] duplicate success ignored: ${cb.txnid}`
+      );
+      return htmlRedirect(bulkSuccessUrl);
+    }
+    console.warn(
+      "[payu-webhook bulk] concurrent processing — letting peer finish",
+      { txnid: cb.txnid, createErr: String(createErr).slice(0, 120) }
     );
+    return htmlRedirect(bulkSuccessUrl);
   }
 
   const now = Date.now();
@@ -222,9 +270,14 @@ async function handleBulkSuccess(cb: PayUCallback): Promise<Response> {
   }
   const pData = pSnap.data() as { name: string; email: string };
 
-  // Generate `qty` unique codes. Same dedup pattern as admin generation.
+  // Generate `qty` unique codes. Chunked into batches of 400 because
+  // Firestore's hard limit is 500 writes per batch — qty=500 codes +
+  // 1 pracharak update = 501 writes would error out, the user's
+  // payment would be taken, and they'd get no codes (the webhook would
+  // also fail PayU's success ack and infinite-retry). 400 leaves
+  // headroom for the pracharak update batch and any future audit
+  // writes added here.
   const codes: string[] = [];
-  const batch = db.batch();
   for (let i = 0; i < qty; i++) {
     let code = generateCode();
     // eslint-disable-next-line no-await-in-loop
@@ -232,19 +285,30 @@ async function handleBulkSuccess(cb: PayUCallback): Promise<Response> {
       code = generateCode();
     }
     codes.push(code);
-    batch.set(db.collection("subscriptionCodes").doc(code), {
-      code,
-      pracharakId,
-      pracharakName: pData.name,
-      pracharakEmail: pData.email,
-      generatedAt: now,
-      generatedBy: "payu-webhook",
-      generatedTxnId: cb.txnid,
-      redeemedBy: null,
-      redeemedAt: null,
-      expiresAt: now + oneYearMs * 1.5,
-    });
   }
+
+  const CODE_BATCH_CHUNK = 400;
+  for (let start = 0; start < codes.length; start += CODE_BATCH_CHUNK) {
+    const chunk = codes.slice(start, start + CODE_BATCH_CHUNK);
+    const codeBatch = db.batch();
+    for (const code of chunk) {
+      codeBatch.set(db.collection("subscriptionCodes").doc(code), {
+        code,
+        pracharakId,
+        pracharakName: pData.name,
+        pracharakEmail: pData.email,
+        generatedAt: now,
+        generatedBy: "payu-webhook",
+        generatedTxnId: cb.txnid,
+        redeemedBy: null,
+        redeemedAt: null,
+        expiresAt: now + oneYearMs * 1.5,
+      });
+    }
+    // eslint-disable-next-line no-await-in-loop
+    await codeBatch.commit();
+  }
+
   // First successful paid batch auto-activates a pending_activation
   // pracharak — that's the whole self-service model. Don't downgrade
   // existing approved/revoked statuses on subsequent purchases.
@@ -254,12 +318,11 @@ async function handleBulkSuccess(cb: PayUCallback): Promise<Response> {
       ? { status: "approved", approvedAt: now, approvedVia: "first-purchase" }
       : {};
 
-  batch.update(pRef, {
+  await pRef.update({
     totalCodesPurchased: FieldValue.increment(qty),
     lastCodesIssuedAt: now,
     ...statusUpdate,
   });
-  await batch.commit();
 
   // Record the order LAST (same atomicity reasoning as the premium
   // branch — the order doc is the idempotency marker, so it must only
@@ -295,24 +358,47 @@ async function recordOrder(
   tier: string,
   premiumUntil: number | null
 ): Promise<void> {
+  // Two protections layered here:
+  //   1. merge:true so we preserve the `processing`-stage fields
+  //      (createdAt, tier as initially recorded) from the create()
+  //      that won the idempotency race.
+  //   2. Refuse to downgrade an existing "success" to "failure" — a
+  //      late-arriving failure callback for an already-successful
+  //      txnid must not overwrite the success record.
   const db = adminDb();
-  await db.collection("orders").doc(cb.txnid).set({
-    txnid: cb.txnid,
-    mihpayid: cb.mihpayid || null,
-    status: cb.status,
-    amount: cb.amount,
-    productinfo: cb.productinfo,
-    firstname: cb.firstname,
-    email: cb.email,
-    uid: tier === "premium-yearly" ? cb.udf1 || null : null,
-    pracharakId: tier.startsWith("pracharak-") ? cb.udf1 || null : null,
-    tier,
-    qty: cb.udf4 ? parseInt(cb.udf4, 10) || null : null,
-    mode: cb.mode || null,
-    bankRef: cb.bank_ref_num || null,
-    paidAt: Date.now(),
-    premiumUntil,
-  });
+  const ref = db.collection("orders").doc(cb.txnid);
+  const existing = await ref.get();
+  if (
+    existing.exists &&
+    (existing.data() as { status?: string })?.status === "success" &&
+    cb.status.toLowerCase() !== "success"
+  ) {
+    console.warn(
+      "[payu-webhook] refused to overwrite success order with non-success",
+      { txnid: cb.txnid, incomingStatus: cb.status }
+    );
+    return;
+  }
+  await ref.set(
+    {
+      txnid: cb.txnid,
+      mihpayid: cb.mihpayid || null,
+      status: cb.status,
+      amount: cb.amount,
+      productinfo: cb.productinfo,
+      firstname: cb.firstname,
+      email: cb.email,
+      uid: tier === "premium-yearly" ? cb.udf1 || null : null,
+      pracharakId: tier.startsWith("pracharak-") ? cb.udf1 || null : null,
+      tier,
+      qty: cb.udf4 ? parseInt(cb.udf4, 10) || null : null,
+      mode: cb.mode || null,
+      bankRef: cb.bank_ref_num || null,
+      paidAt: Date.now(),
+      premiumUntil,
+    },
+    { merge: true }
+  );
 }
 
 function formDataToCallback(form: FormData): PayUCallback {

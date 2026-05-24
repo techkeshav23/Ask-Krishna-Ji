@@ -59,44 +59,54 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate + write atomically. We dedupe by re-rolling on collision
-    // (astronomically unlikely with 12-char Crockford base32 but cheap to verify).
+    // Generate codes (de-duped via existence probe — collision odds
+    // ~0 with 12-char Crockford base32 but cheap to verify).
     const codes: string[] = [];
-    const batch = db.batch();
     const now = Date.now();
     const oneYearMs = 365 * 24 * 60 * 60 * 1000;
 
     for (let i = 0; i < qty; i++) {
       let code = generateCode();
-      // Quick existence probe — for typical scale this is ~0 collisions.
-      // For very high scale, replace with a Cloud Function batched job.
       // eslint-disable-next-line no-await-in-loop
       while ((await db.collection("subscriptionCodes").doc(code).get()).exists) {
         code = generateCode();
       }
       codes.push(code);
-      batch.set(db.collection("subscriptionCodes").doc(code), {
-        code,
-        pracharakId,
-        pracharakName: pData.name,
-        pracharakEmail: pData.email,
-        generatedAt: now,
-        generatedBy: session.email,
-        // Codes are unredeemed initially. `redeemedBy` is the user UID
-        // who claims the code; nulls remain on issued/unused codes.
-        redeemedBy: null,
-        redeemedAt: null,
-        // 18-month shelf life — gives plenty of time for the pracharak
-        // to sell + the user to redeem before forced expiry.
-        expiresAt: now + oneYearMs * 1.5,
-      });
     }
 
-    batch.update(pRef, {
+    // Chunk into batches of 400 writes — Firestore's hard ceiling is
+    // 500 writes per batch, so qty=500 codes + 1 pracharak update = 501
+    // would error out and bury the admin's request. 400 leaves headroom
+    // for future audit writes added inline.
+    const CODE_BATCH_CHUNK = 400;
+    for (let start = 0; start < codes.length; start += CODE_BATCH_CHUNK) {
+      const chunk = codes.slice(start, start + CODE_BATCH_CHUNK);
+      const codeBatch = db.batch();
+      for (const code of chunk) {
+        codeBatch.set(db.collection("subscriptionCodes").doc(code), {
+          code,
+          pracharakId,
+          pracharakName: pData.name,
+          pracharakEmail: pData.email,
+          generatedAt: now,
+          generatedBy: session.email,
+          // Codes are unredeemed initially. `redeemedBy` is the user UID
+          // who claims the code; nulls remain on issued/unused codes.
+          redeemedBy: null,
+          redeemedAt: null,
+          // 18-month shelf life — gives plenty of time for the pracharak
+          // to sell + the user to redeem before forced expiry.
+          expiresAt: now + oneYearMs * 1.5,
+        });
+      }
+      // eslint-disable-next-line no-await-in-loop
+      await codeBatch.commit();
+    }
+
+    await pRef.update({
       totalCodesPurchased: FieldValue.increment(qty),
       lastCodesIssuedAt: now,
     });
-    await batch.commit();
 
     // Email the pracharak with the full list.
     try {
