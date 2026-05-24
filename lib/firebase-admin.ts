@@ -58,14 +58,24 @@ export const adminAuth = (): Auth => getAuth(getApp());
 export const verifyAuthHeader = async (
   authHeader: string | null
 ): Promise<import("firebase-admin/auth").DecodedIdToken | null> => {
-  if (!authHeader) return null;
+  if (!authHeader) {
+    console.warn("[verifyAuthHeader] no Authorization header");
+    return null;
+  }
   const match = /^Bearer\s+(.+)$/i.exec(authHeader);
-  if (!match) return null;
+  if (!match) {
+    console.warn("[verifyAuthHeader] header not Bearer format:", authHeader.slice(0, 20));
+    return null;
+  }
   const token = match[1]!.trim();
-  if (!token) return null;
+  if (!token) {
+    console.warn("[verifyAuthHeader] empty token after Bearer");
+    return null;
+  }
   try {
     return await adminAuth().verifyIdToken(token);
-  } catch {
+  } catch (err) {
+    console.warn("[verifyAuthHeader] verifyIdToken failed:", err instanceof Error ? err.message : String(err));
     return null;
   }
 };
