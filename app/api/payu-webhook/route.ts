@@ -118,7 +118,10 @@ async function handlePremiumSuccess(cb: PayUCallback): Promise<Response> {
   const oneYearMs = 365 * 24 * 60 * 60 * 1000;
   const premiumUntil = now + oneYearMs;
   const uid = (cb.udf1 || "").trim();
-  const returnDeepLink = (cb.udf3 || "").trim();
+  // returnDeepLink was already pulled at the top of handlePremiumSuccess
+  // (above the idempotency check) so the duplicate-error redirect path
+  // could use it without re-running this whole block. Re-declaring here
+  // is a SyntaxError — handled by reusing the outer binding.
 
   // ORDER OF WRITES MATTERS for retry safety:
   //   - The order doc is the idempotency marker at the top of this
