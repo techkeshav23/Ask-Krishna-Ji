@@ -79,11 +79,27 @@ export default function BuyCodesPage() {
             Quantity
           </span>
           <input
-            type="number"
-            value={qty}
-            min={MIN_QTY}
-            max={500}
-            onChange={(e) => setQty(Number(e.target.value))}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={qty === 0 ? "" : String(qty)}
+            onChange={(e) => {
+              // type="number" + controlled state had a classic bug: typing
+              // "0" at the start of an existing "5" displayed "05" but
+              // setState(Number("05"))===5===existing, no re-render, the
+              // DOM kept showing "05". Switching to type="text" + manual
+              // digit normalization gives us full control of what's shown.
+              const digits = e.target.value.replace(/\D/g, "");
+              // Strip leading zeros so "05" → "5". Empty string allowed
+              // mid-typing (user clearing the field) — clamp to MIN on
+              // blur, not on every keystroke.
+              const normalized = digits.replace(/^0+(?=\d)/, "");
+              setQty(normalized === "" ? 0 : Number(normalized));
+            }}
+            onBlur={() => {
+              if (qty < MIN_QTY) setQty(MIN_QTY);
+              if (qty > 500) setQty(500);
+            }}
             className="w-full bg-bg-primary border border-saffron/30 rounded-lg px-3 py-2 text-text-primary text-lg font-bold focus:outline-none focus:border-saffron"
           />
           <p className="text-xs text-text-muted mt-1">
