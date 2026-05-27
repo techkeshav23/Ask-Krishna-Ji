@@ -102,7 +102,7 @@ export default function PracharakSignupPage() {
           ← Home
         </Link>
 
-        <div className="text-center mt-4 mb-8">
+        <div className="text-center mt-4 mb-6">
           <div className="text-4xl mb-2">🪷</div>
           <h1 className="text-3xl font-bold mb-2">
             गीता के प्रचारक बनें
@@ -112,6 +112,23 @@ export default function PracharakSignupPage() {
             by selling premium subscriptions at bulk-rate.
           </p>
         </div>
+
+        <Link
+          href="/pracharak-portal/login"
+          className="block w-full text-center bg-saffron hover:bg-saffron-light
+                     text-bg-primary font-bold text-base py-4 px-6 rounded-xl
+                     border-2 border-saffron-light shadow-lg
+                     transition-colors mb-3"
+        >
+          पहले से प्रचारक हैं? यहाँ लॉगिन करें →
+          <span className="block text-xs font-normal mt-1 opacity-80">
+            Already a pracharak? Login here
+          </span>
+        </Link>
+
+        <p className="text-center text-xs text-text-muted mb-4">
+          — या नया अकाउंट बनाएं / Or create a new account below —
+        </p>
 
         <form onSubmit={onSubmit} className="card space-y-4">
           <Field
@@ -201,16 +218,6 @@ export default function PracharakSignupPage() {
           <p className="text-xs text-text-muted text-center">
             You'll be taken to your dashboard to activate by purchasing
             your first batch of codes (₹2,500 for 5).
-          </p>
-
-          <p className="text-xs text-text-muted text-center pt-2">
-            Already a pracharak?{" "}
-            <Link
-              href="/pracharak-portal/login"
-              className="text-saffron hover:text-saffron-light"
-            >
-              Login →
-            </Link>
           </p>
         </form>
       </div>

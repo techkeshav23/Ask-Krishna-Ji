@@ -11,3 +11,5 @@ build/
 # Firebase admin credentials — NEVER commit
 firebase-admin-key.json
 serviceAccountKey.json
+tsconfig.tsbuildinfo
+*.tsbuildinfo
