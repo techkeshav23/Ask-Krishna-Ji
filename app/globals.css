@@ -2,28 +2,226 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ──────────────────────────────────────────────────────────────
+   Script fonts loaded via Google Fonts for the 21-language parade.
+   Cormorant Garamond + Tiro Devanagari Hindi + Noto Serif Devanagari
+   are loaded via next/font in layout.tsx for performance.
+   The script fonts below are display-only for the languages section.
+   ────────────────────────────────────────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@500&family=Noto+Sans+Gujarati:wght@500&family=Noto+Sans+Tamil:wght@500&family=Noto+Sans+Telugu:wght@500&family=Noto+Sans+Kannada:wght@500&family=Noto+Sans+Malayalam:wght@500&family=Noto+Sans+Gurmukhi:wght@500&family=Noto+Sans+Oriya:wght@500&family=Noto+Nastaliq+Urdu:wght@500&display=swap");
+
 @layer base {
+  :root {
+    --paper: 243 232 200;       /* parchment — slightly desaturated for contrast */
+    --ink: 26 16 6;              /* deeper ink than before for solid readability */
+    --gold-leaf: 184 144 32;     /* burnished gold */
+  }
+
   html {
-    @apply bg-bg-primary text-text-primary;
+    color: rgb(var(--ink));
+    background: rgb(var(--paper));
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-size: 17px; /* base size bumped from 16 for the devotee audience */
   }
+  @media (min-width: 1024px) {
+    html { font-size: 18px; }
+  }
+
   body {
-    @apply font-devanagari antialiased;
+    font-family: var(--font-body), Georgia, "Times New Roman", serif;
+    font-weight: 500;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    line-height: 1.6;
+    /* Paper grain — kept, but the wash is tightened so type stays clear */
+    background-color: rgb(243 232 200);
+    background-image:
+      radial-gradient(at 18% 12%, rgba(232, 208, 138, 0.28) 0%, transparent 42%),
+      radial-gradient(at 88% 82%, rgba(168, 131, 50, 0.14) 0%, transparent 48%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.42  0 0 0 0 0.31  0 0 0 0 0.18  0 0 0 0.035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-blend-mode: multiply, multiply, normal;
+    min-height: 100vh;
   }
+
+  ::selection {
+    background: rgba(184, 69, 30, 0.22);
+    color: rgb(var(--ink));
+  }
+
+  /* Devanagari blocks consistently use the heavier body face. */
+  [lang="hi"], [lang="sa"], .font-deva {
+    font-weight: 600;
+  }
+
+  body,
+  h1, h2, h3, h4, h5, h6 {
+    font-variant-numeric: lining-nums;
+  }
+
+  /* Headings use display serif at confident editorial weight. */
+  h1, h2, h3, h4 {
+    font-family: var(--font-display), Georgia, serif;
+    font-weight: 600;
+    letter-spacing: -0.012em;
+    color: rgb(var(--ink));
+  }
+  h1 { font-weight: 600; }
+  h2 { font-weight: 600; }
+  h3, h4 { font-weight: 600; }
+
+  /* Paragraphs — leading + measure tuned for screen reading at 17/18px. */
+  p {
+    line-height: 1.65;
+  }
+
+  /* Strong type lands harder than browser defaults. */
+  strong, b { font-weight: 700; }
+  em, i { font-style: italic; }
 }
 
 @layer components {
-  .btn-primary {
-    @apply bg-saffron text-white font-bold px-6 py-3 rounded-xl
-           shadow-lg hover:bg-saffron-dark transition-colors
-           disabled:opacity-60 disabled:cursor-not-allowed;
+  /* ── Eyebrow label — confident section announcer. Weight bumped so it
+        registers above the body text without shouting. ── */
+  .eyebrow {
+    @apply text-eyebrow uppercase text-gold-deep;
+    font-family: var(--font-display), Georgia, serif;
+    font-weight: 700;
+    font-variant-numeric: lining-nums;
   }
-  .btn-gold {
-    @apply bg-gold text-white font-bold px-6 py-3 rounded-xl
-           shadow-lg hover:bg-gold-dim transition-colors
-           disabled:opacity-60 disabled:cursor-not-allowed;
+
+  /* ── Architectural button — flat, sharp, with offset gold underline ── */
+  .btn-architect {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 1rem 1.6rem 1.05rem;
+    background: rgb(26 16 6);
+    color: rgb(243 232 200);
+    font-family: var(--font-display), Georgia, serif;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+                background 0.3s ease;
   }
-  .card {
-    @apply bg-bg-secondary border border-saffron/20 rounded-2xl
-           p-6 shadow-xl;
+  .btn-architect::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translate(6px, 6px);
+    background: transparent;
+    border: 1px solid rgb(168 131 50);
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: -1;
   }
+  .btn-architect:hover {
+    transform: translate(2px, 2px);
+    background: rgb(13 8 3);
+  }
+  .btn-architect:hover::before {
+    transform: translate(4px, 4px);
+  }
+
+  /* ── Ghost button — same shape, parchment fill, ink outline ── */
+  .btn-ghost {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 1rem 1.6rem 1.05rem;
+    background: transparent;
+    color: rgb(26 16 6);
+    font-family: var(--font-display), Georgia, serif;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    border: 1.5px solid rgb(26 16 6);
+    cursor: pointer;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+  .btn-ghost:hover {
+    background: rgb(26 16 6);
+    color: rgb(243 232 200);
+  }
+
+  /* ── Editorial pull-quote ── */
+  .pullquote {
+    font-family: var(--font-display), Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.32;
+  }
+
+  /* ── Hairline gold rule — replaces tailwind's border-gray-200 ── */
+  .rule-gold {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgb(168 131 50) 18%,
+      rgb(168 131 50) 82%,
+      transparent
+    );
+  }
+
+  /* ── Drop cap for opening paragraphs ── */
+  .dropcap::first-letter {
+    font-family: var(--font-display), Georgia, serif;
+    float: left;
+    font-size: 4.2em;
+    line-height: 0.85;
+    font-weight: 500;
+    padding: 0.18em 0.12em 0 0;
+    color: rgb(184 69 30);
+  }
+
+  /* ── Foil card — for the premium offering ── */
+  .foil-card {
+    position: relative;
+    background:
+      linear-gradient(135deg,
+        rgba(238, 223, 168, 0.6) 0%,
+        rgba(217, 189, 110, 0.4) 35%,
+        rgba(168, 131, 50, 0.25) 60%,
+        rgba(238, 223, 168, 0.6) 100%);
+    border: 1px solid rgba(168, 131, 50, 0.6);
+    box-shadow:
+      0 1px 0 rgba(255, 250, 240, 0.8) inset,
+      0 2px 24px -8px rgba(128, 96, 32, 0.35);
+  }
+  .foil-card::before {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border: 1px solid rgba(168, 131, 50, 0.35);
+    pointer-events: none;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+  .font-numerals-lining {
+    font-variant-numeric: lining-nums;
+  }
+  .font-numerals-tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Per-script font helpers for the language parade */
+  .font-bengali { font-family: "Noto Sans Bengali", sans-serif; }
+  .font-gujarati { font-family: "Noto Sans Gujarati", sans-serif; }
+  .font-tamil { font-family: "Noto Sans Tamil", sans-serif; }
+  .font-telugu { font-family: "Noto Sans Telugu", sans-serif; }
+  .font-kannada { font-family: "Noto Sans Kannada", sans-serif; }
+  .font-malayalam { font-family: "Noto Sans Malayalam", sans-serif; }
+  .font-gurmukhi { font-family: "Noto Sans Gurmukhi", sans-serif; }
+  .font-oriya { font-family: "Noto Sans Oriya", sans-serif; }
+  .font-nastaliq { font-family: "Noto Nastaliq Urdu", serif; }
 }

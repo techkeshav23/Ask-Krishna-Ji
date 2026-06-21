@@ -1,283 +1,175 @@
-"use client";
-
-import { Suspense, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import type { Metadata } from "next";
 import Link from "next/link";
+import { Nav } from "@/components/Nav";
+import { Footer } from "@/components/Footer";
+import {
+  ChapterMark,
+  CornerFlourish,
+  Danda,
+  DiamondRule,
+} from "@/components/Ornaments";
 
-const PREMIUM_PRICE = process.env.NEXT_PUBLIC_PREMIUM_PRICE_INR || "999";
+/**
+ * /premium — a deliberate single-channel bridge page.
+ *
+ * Premium subscriptions are sold exclusively through Google Play Billing.
+ * The earlier PayU consumer flow on this page was retired to remove the
+ * email-matching risk: a user paying on the web with one email but signed
+ * into the app with another (or signed in via phone OTP with no email)
+ * would never see their premium activate, requiring manual support.
+ *
+ * The PayU webhook + Pracharak bulk-codes path remain wired up under
+ * /api/payu-webhook and /pracharak-portal; only this consumer premium
+ * page redirects users to the Play Store.
+ */
 
-function PremiumCheckoutInner() {
-  const params = useSearchParams();
-  const prefillUid = params.get("uid") || "";
-  const prefillEmail = params.get("email") || "";
-  const prefillName = params.get("name") || "";
-  const prefillPhone = (params.get("phone") || "").replace(/\s/g, "");
-  const returnUrl = params.get("return") || "";
+const PLAY_STORE_URL =
+  "https://play.google.com/store/apps/details?id=com.askkrishnaji.app";
 
-  const [name, setName] = useState(prefillName);
-  const [email, setEmail] = useState(prefillEmail);
-  const [phone, setPhone] = useState(prefillPhone);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export const metadata: Metadata = {
+  title: "Premium — Ask Krishna Ji",
+  description:
+    "Ask Krishna Ji Premium is offered through the Play Store. Tap to open Google Play and subscribe.",
+};
 
-  // Hidden form ref we use to auto-POST to PayU after we've fetched
-  // the signed order fields from our backend.
-  const payuFormRef = useRef<HTMLFormElement>(null);
-  const [payuFields, setPayuFields] = useState<Record<string, string> | null>(
-    null
-  );
-  const [payuAction, setPayuAction] = useState<string>("");
-
-  useEffect(() => {
-    if (payuFields && payuFormRef.current) {
-      // Submit immediately to PayU.
-      payuFormRef.current.submit();
-    }
-  }, [payuFields]);
-
-  // Auto-submit path: when the app launches checkout it already knows
-  // the user's name/email/phone, so we can skip the form entirely and
-  // go straight to PayU. Triggered only when ALL three prefills are
-  // present and pass basic validation — otherwise we render the form
-  // for the user to fill in / correct.
-  const canAutoSubmit =
-    prefillName.trim().length > 0 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(prefillEmail) &&
-    /^\+?[0-9]{10,13}$/.test(prefillPhone);
-
-  useEffect(() => {
-    if (!canAutoSubmit) return;
-    // Fire once on mount when we have full prefills.
-    void startPayU(prefillName, prefillEmail, prefillPhone);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canAutoSubmit]);
-
-  const startPayU = async (
-    nameVal: string,
-    emailVal: string,
-    phoneVal: string
-  ) => {
-    setError(null);
-    setSubmitting(true);
-    try {
-      const res = await fetch("/api/payu-init", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: nameVal,
-          email: emailVal,
-          phone: phoneVal,
-          uid: prefillUid,
-          returnUrl,
-          tier: "premium-yearly",
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Could not start payment. Try again.");
-        setSubmitting(false);
-        return;
-      }
-      setPayuAction(data.action as string);
-      setPayuFields(data.fields as Record<string, string>);
-    } catch {
-      setError("Network error. Please try again.");
-      setSubmitting(false);
-    }
-  };
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!name.trim()) {
-      setError("Please enter your name.");
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Please enter a valid email.");
-      return;
-    }
-    if (!/^\+?[0-9]{10,13}$/.test(phone.replace(/\s/g, ""))) {
-      setError("Please enter a valid Indian phone number.");
-      return;
-    }
-
-    await startPayU(name, email, phone);
-  };
-
-  // Auto-submit branch: show a "Redirecting to PayU" splash instead of
-  // the form. Once `payuFields` lands, the hidden form auto-POSTs.
-  if (canAutoSubmit && !error) {
-    return (
-      <main className="min-h-screen flex items-center justify-center px-6">
-        <div className="card max-w-md w-full text-center">
-          <div className="text-5xl mb-4">⭐</div>
-          <h1 className="text-2xl font-bold mb-3">Opening secure checkout…</h1>
-          <p className="text-text-secondary mb-6">
-            Connecting you to PayU for ₹{PREMIUM_PRICE} payment.
-          </p>
-          <div className="flex justify-center mb-2">
-            <div className="w-8 h-8 border-2 border-saffron border-t-transparent rounded-full animate-spin" />
-          </div>
-          <p className="text-xs text-text-muted mt-4">
-            कृपया प्रतीक्षा करें · Don't close this page.
-          </p>
-          {payuFields ? (
-            <form
-              ref={payuFormRef}
-              action={payuAction}
-              method="POST"
-              className="hidden"
-            >
-              {Object.entries(payuFields).map(([k, v]) => (
-                <input key={k} name={k} defaultValue={v} type="hidden" />
-              ))}
-            </form>
-          ) : null}
-        </div>
-      </main>
-    );
-  }
-
-  // Manual-entry branch: someone visited /premium directly in a
-  // browser (no prefills) OR the auto-submit failed. Render the form
-  // with any prefills the URL provided, locking the prefilled fields
-  // so we don't silently drift from the app's source of truth.
+export default function PremiumBridgePage() {
   return (
-    <main className="min-h-screen px-6 py-12">
-      <div className="max-w-md mx-auto">
-        <Link
-          href="/"
-          className="text-text-secondary hover:text-text-primary text-sm"
-        >
-          ← Home
-        </Link>
+    <>
+      <Nav />
+      <main className="relative">
+        <section className="relative overflow-hidden py-24 lg:py-32">
+          <div className="mx-auto max-w-canvas px-6 lg:px-10">
+            <div className="mx-auto max-w-3xl">
+              {/* Chapter eyebrow */}
+              <div className="mb-6 flex items-center justify-center gap-3 text-gold-deep">
+                <ChapterMark className="h-5 w-auto" />
+                <span className="eyebrow">A Note on Membership</span>
+                <ChapterMark className="h-5 w-auto" />
+              </div>
 
-        <div className="text-center mt-4 mb-8">
-          <div className="text-4xl mb-2">⭐</div>
-          <h1 className="text-3xl font-bold mb-2">Go Premium</h1>
-          <p className="text-text-secondary text-sm">
-            Ad-free experience · Krishna Ji ki seva mein
-          </p>
-        </div>
+              {/* Display headline */}
+              <h1 className="mb-6 text-center font-display text-display-lg font-bold text-balance text-ink-deep">
+                Premium is offered through the{" "}
+                <span className="italic text-saffron-deep">Play Store.</span>
+              </h1>
 
-        <div className="card border-gold/40 text-center mb-6">
-          <p className="text-text-secondary mb-1">Annual subscription</p>
-          <p className="text-4xl font-bold text-gold my-2">
-            ₹{PREMIUM_PRICE}
-            <span className="text-base font-normal text-text-secondary">
-              {" "}/ year
-            </span>
-          </p>
-          <p className="text-xs text-text-muted">
-            One-time payment · Auto-activates in app
-          </p>
-        </div>
-
-        <form onSubmit={onSubmit} className="card space-y-4">
-          <label className="block">
-            <span className="text-sm font-semibold mb-1 block">
-              पूरा नाम / Full name *
-            </span>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              readOnly={!!prefillName}
-              placeholder="आपका नाम"
-              className={`w-full bg-bg-primary border border-saffron/30 rounded-lg px-3 py-2 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-saffron ${
-                prefillName ? "opacity-70 cursor-not-allowed" : ""
-              }`}
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-sm font-semibold mb-1 block">
-              ईमेल / Email *
-            </span>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              readOnly={!!prefillEmail}
-              placeholder="you@example.com"
-              autoCapitalize="none"
-              className={`w-full bg-bg-primary border border-saffron/30 rounded-lg px-3 py-2 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-saffron ${
-                prefillEmail ? "opacity-70 cursor-not-allowed" : ""
-              }`}
-            />
-            {prefillEmail ? (
-              <p className="text-xs text-text-muted mt-1">
-                Locked — payment is linked to your app account
-                ({prefillEmail}).
+              {/* Lede */}
+              <p className="mx-auto mb-3 max-w-xl text-center text-xl font-medium leading-relaxed text-ink-soft lg:text-2xl">
+                Tap below to open Google Play and subscribe. The membership
+                activates inside the app as soon as the purchase clears —
+                no codes, no waiting, no email matching to get wrong.
               </p>
-            ) : null}
-          </label>
+              <p className="mx-auto mb-12 max-w-xl text-center font-deva text-lg font-semibold text-ink-soft lg:text-xl">
+                सदस्यता Play Store के माध्यम से उपलब्ध है।
+              </p>
 
-          <label className="block">
-            <span className="text-sm font-semibold mb-1 block">
-              फ़ोन / Phone *
-            </span>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-              readOnly={!!prefillPhone}
-              placeholder="10-digit mobile"
-              inputMode="tel"
-              className={`w-full bg-bg-primary border border-saffron/30 rounded-lg px-3 py-2 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-saffron ${
-                prefillPhone ? "opacity-70 cursor-not-allowed" : ""
-              }`}
-            />
-          </label>
+              {/* Centred foil card */}
+              <div className="foil-card relative mx-auto max-w-xl p-10 text-center lg:p-12">
+                <CornerFlourish className="absolute left-2 top-2 h-7 w-7 text-gold-deep" />
+                <CornerFlourish flip className="absolute right-2 top-2 h-7 w-7 text-gold-deep" />
+                <CornerFlourish className="absolute bottom-2 left-2 h-7 w-7 rotate-180 text-gold-deep" />
+                <CornerFlourish flip className="absolute bottom-2 right-2 h-7 w-7 rotate-180 text-gold-deep" />
 
-          {error ? (
-            <p className="text-sm text-red-300 bg-red-900/20 border border-red-500/40 rounded-lg p-3">
-              {error}
-            </p>
-          ) : null}
+                <p className="eyebrow mb-4 text-gold-deep">
+                  <Danda className="mr-1.5 text-gold-deep" />
+                  Pilgrim's Path
+                  <Danda className="ml-1.5 text-gold-deep" />
+                </p>
+                <p className="font-display text-3xl font-bold text-ink-deep">
+                  Ad-free reading
+                </p>
+                <p className="mt-1 font-deva text-base font-semibold text-ink-soft">
+                  बिना विज्ञापन, बिना रुकावट
+                </p>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="btn-gold w-full"
-          >
-            {submitting ? "Redirecting to PayU..." : `Pay ₹${PREMIUM_PRICE}`}
-          </button>
+                <div className="my-6 flex items-center justify-center gap-2 text-gold-deep">
+                  <span className="h-px w-12 bg-gold-deep/60" />
+                  <span className="text-xs">◆</span>
+                  <span className="h-px w-12 bg-gold-deep/60" />
+                </div>
 
-          <p className="text-xs text-text-muted text-center">
-            Payment is securely processed by PayU. Your premium activates
-            instantly after successful payment.
-          </p>
-        </form>
+                <a
+                  href={PLAY_STORE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-architect"
+                >
+                  <svg
+                    width="16"
+                    height="18"
+                    viewBox="0 0 16 18"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                    aria-hidden="true"
+                  >
+                    <path d="M1 1 L13 9 L1 17 Z" />
+                    <path d="M1 1 L10 12" />
+                    <path d="M1 17 L10 6" />
+                  </svg>
+                  Open on Google Play
+                </a>
 
-        {/* Hidden form auto-submitted to PayU once we have the signed
-            order. We don't render the fields visibly. */}
-        {payuFields ? (
-          <form
-            ref={payuFormRef}
-            action={payuAction}
-            method="POST"
-            className="hidden"
-          >
-            {Object.entries(payuFields).map(([k, v]) => (
-              <input key={k} name={k} defaultValue={v} type="hidden" />
-            ))}
-          </form>
-        ) : null}
-      </div>
-    </main>
-  );
-}
+                <p className="mt-6 text-sm italic text-ink-fade">
+                  Open the app and tap{" "}
+                  <em className="not-italic font-semibold text-ink-soft">
+                    Become a Member
+                  </em>
+                  &nbsp;to complete the purchase. Activation is instant.
+                </p>
+              </div>
 
-export default function PremiumCheckoutPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen" />}>
-      <PremiumCheckoutInner />
-    </Suspense>
+              {/* Why Play Store — short editorial reassurance */}
+              <div className="mx-auto mt-16 max-w-2xl">
+                <div className="mb-8 flex items-center justify-center text-gold-deep">
+                  <DiamondRule className="w-full max-w-md" />
+                </div>
+
+                <h2 className="mb-6 text-center font-display text-2xl font-bold text-ink-deep lg:text-3xl">
+                  Why through the Play Store?
+                </h2>
+
+                <ul className="mx-auto max-w-xl space-y-4 text-[1.05rem] leading-relaxed text-ink-soft">
+                  <li className="flex items-start gap-4">
+                    <span className="mt-3 h-1.5 w-1.5 shrink-0 rotate-45 bg-saffron-deep" />
+                    <span>
+                      <strong className="text-ink-deep">Activation is automatic.</strong>{" "}
+                      The purchase is tied directly to your app account — no
+                      separate code to redeem, no email matching to get wrong.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-4">
+                    <span className="mt-3 h-1.5 w-1.5 shrink-0 rotate-45 bg-saffron-deep" />
+                    <span>
+                      <strong className="text-ink-deep">Refunds are Google's responsibility.</strong>{" "}
+                      Any billing issue can be raised inside the Play Store and
+                      Google handles the resolution.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-4">
+                    <span className="mt-3 h-1.5 w-1.5 shrink-0 rotate-45 bg-saffron-deep" />
+                    <span>
+                      <strong className="text-ink-deep">UPI, cards, net-banking — all supported</strong>{" "}
+                      inside Google Play. The same options you already use for
+                      other apps.
+                    </span>
+                  </li>
+                </ul>
+
+                <p className="mt-12 text-center">
+                  <Link
+                    href="/"
+                    className="font-display text-base font-semibold text-ink-soft underline decoration-gold-deep decoration-1 underline-offset-4 transition-colors hover:text-saffron-deep"
+                  >
+                    ← Return to the home page
+                  </Link>
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </>
   );
 }
