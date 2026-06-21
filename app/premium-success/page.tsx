@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Danda, Lotus } from "@/components/Ornaments";
 
 const PLAY_STORE_URL =
   process.env.APP_PLAY_STORE_URL ||
@@ -17,9 +18,6 @@ function PremiumSuccessInner() {
   useEffect(() => {
     if (!returnDeepLink) return;
     if (countdown <= 0) {
-      // Best-effort attempt to deep-link back into the app. Most browsers
-      // require a real user gesture; on auto-open this may show a prompt
-      // ("Open in app?") which is acceptable UX.
       window.location.href = returnDeepLink;
       return;
     }
@@ -28,56 +26,70 @@ function PremiumSuccessInner() {
   }, [countdown, returnDeepLink]);
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6">
-      <div className="card max-w-md w-full text-center border-gold/40">
-        <div className="text-6xl mb-4">🌟</div>
-        <h1 className="text-3xl font-bold mb-3 text-gold">
-          Premium Activated!
-        </h1>
-        <p className="text-text-secondary mb-6 leading-relaxed">
-          🙏 कृष्ण जी की कृपा से आपकी प्रीमियम सदस्यता सक्रिय हो गई है।
-          आपको आगामी 1 वर्ष तक विज्ञापन-रहित अनुभव मिलेगा।
-        </p>
+    <main className="auth-shell">
+      <div className="w-full max-w-md">
+        <div className="foil-card relative p-10 text-center">
+          <Lotus className="mx-auto mb-3 h-10 w-auto text-saffron-deep" />
+          <p className="eyebrow mb-3 text-gold-deep">A Successful Offering</p>
+          <h1 className="font-display text-3xl font-bold text-ink-deep sm:text-4xl">
+            Premium <span className="italic text-saffron-deep">activated.</span>
+          </h1>
 
-        {txn ? (
-          <p className="text-xs text-text-muted mb-6 font-mono">
-            Order: {txn}
+          <div className="my-6 flex items-center justify-center gap-2 text-gold-deep">
+            <span className="h-px w-12 bg-gold-deep/60" />
+            <span className="text-xs">◆</span>
+            <span className="h-px w-12 bg-gold-deep/60" />
+          </div>
+
+          <p className="font-deva text-lg font-semibold leading-relaxed text-ink-soft">
+            🙏 कृष्ण जी की कृपा से आपकी प्रीमियम सदस्यता सक्रिय हो गई है।
           </p>
-        ) : null}
+          <p className="mt-3 text-base leading-relaxed text-ink-soft">
+            For the next year you will read the Gita uninterrupted, without a
+            single sponsor message between chapters.
+          </p>
 
-        {returnDeepLink ? (
-          <>
-            <p className="text-sm text-text-secondary mb-2">
-              Opening app in {countdown}s...
+          {txn ? (
+            <p className="mt-6 font-mono text-xs text-ink-fade">
+              Order · {txn}
             </p>
-            <a
-              href={returnDeepLink}
-              className="btn-gold inline-block w-full mb-3"
-            >
-              Open App Now
-            </a>
-          </>
-        ) : (
-          <a
-            href={PLAY_STORE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-gold inline-block w-full mb-3"
+          ) : null}
+
+          <div className="mt-8">
+            {returnDeepLink ? (
+              <>
+                <p className="mb-3 text-sm italic text-ink-soft">
+                  Opening the app in {countdown}s…
+                </p>
+                <a href={returnDeepLink} className="btn-solid btn-solid--saffron">
+                  <Danda className="text-gold-soft" />
+                  Open the App Now
+                </a>
+              </>
+            ) : (
+              <a
+                href={PLAY_STORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-solid btn-solid--saffron"
+              >
+                <Danda className="text-gold-soft" />
+                Open the App
+              </a>
+            )}
+          </div>
+
+          <Link
+            href="/"
+            className="mt-6 inline-block text-sm font-semibold text-ink-soft transition-colors hover:text-saffron-deep"
           >
-            Open App
-          </a>
-        )}
+            ← Return to home
+          </Link>
 
-        <Link
-          href="/"
-          className="text-sm text-text-secondary hover:text-text-primary block"
-        >
-          Back to Home
-        </Link>
-
-        <p className="text-xs text-text-muted mt-6">
-          A copy of your invoice has been sent to your email.
-        </p>
+          <p className="form-help mt-8 border-t border-ink/15 pt-5">
+            A copy of your invoice has been sent to your email.
+          </p>
+        </div>
       </div>
     </main>
   );

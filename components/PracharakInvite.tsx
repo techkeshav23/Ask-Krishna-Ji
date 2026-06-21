@@ -11,7 +11,7 @@ export const PracharakInvite = () => {
     <section
       id="pracharak"
       aria-label="Become a Gita Pracharak"
-      className="relative bg-ink py-24 text-parchment-warm lg:py-32"
+      className="relative bg-ink py-16 text-parchment-warm lg:py-20"
     >
       {/* Thin gold rules at top/bottom — same treatment as SacredVerse so the
           two dark sections feel like related plates in the same book */}
@@ -31,7 +31,7 @@ export const PracharakInvite = () => {
       />
 
       <div className="relative mx-auto max-w-canvas px-6 lg:px-10">
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-20">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
           {/* Left — typographic mark and chapter eyebrow */}
           <div className="lg:col-span-5">
             <div className="mb-5 flex items-center gap-3 text-gold-soft">

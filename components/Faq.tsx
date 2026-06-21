@@ -39,13 +39,13 @@ export const Faq = () => {
   return (
     <section
       aria-label="Frequently asked questions"
-      className="relative bg-parchment-warm/40 py-24 lg:py-32"
+      className="relative bg-parchment-warm/40 py-14 lg:py-20"
     >
       <div className="absolute inset-x-0 top-0 h-px bg-ink/15" />
       <div className="absolute inset-x-0 bottom-0 h-px bg-ink/15" />
 
       <div className="mx-auto max-w-canvas px-6 lg:px-10">
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
           {/* Left — sticky header */}
           <div className="lg:col-span-4">
             <div className="lg:sticky lg:top-20">

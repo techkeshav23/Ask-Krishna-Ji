@@ -62,17 +62,17 @@ module.exports = {
         mono: ["ui-monospace", "Menlo", "monospace"],
       },
       fontSize: {
-        "display-xl": ["clamp(3.5rem, 9vw, 7.5rem)", { lineHeight: "0.95", letterSpacing: "-0.02em" }],
-        "display-lg": ["clamp(2.75rem, 6vw, 5.25rem)", { lineHeight: "1.02", letterSpacing: "-0.015em" }],
-        "display-md": ["clamp(2rem, 4vw, 3.5rem)", { lineHeight: "1.08", letterSpacing: "-0.01em" }],
-        "eyebrow": ["0.6875rem", { lineHeight: "1.2", letterSpacing: "0.22em" }],
+        "display-xl": ["clamp(2.75rem, 7vw, 5.75rem)", { lineHeight: "0.98", letterSpacing: "-0.02em" }],
+        "display-lg": ["clamp(2.25rem, 5vw, 4.25rem)", { lineHeight: "1.04", letterSpacing: "-0.015em" }],
+        "display-md": ["clamp(1.75rem, 3.5vw, 2.75rem)", { lineHeight: "1.1", letterSpacing: "-0.01em" }],
+        "eyebrow": ["0.65rem", { lineHeight: "1.2", letterSpacing: "0.22em" }],
       },
       letterSpacing: {
         widest: "0.28em",
       },
       maxWidth: {
-        canvas: "82rem",
-        column: "44rem",
+        canvas: "76rem",
+        column: "42rem",
       },
       animation: {
         "rotate-slow": "rotate-slow 80s linear infinite",

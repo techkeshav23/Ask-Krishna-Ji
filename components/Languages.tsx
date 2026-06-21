@@ -46,7 +46,7 @@ export const Languages = () => {
     <section
       id="languages"
       aria-label="Supported languages"
-      className="relative bg-parchment-warm/40 py-24 lg:py-32"
+      className="relative bg-parchment-warm/40 py-14 lg:py-20"
     >
       {/* Top + bottom faint rules */}
       <div className="absolute inset-x-0 top-0 h-px bg-ink/15" />
@@ -54,7 +54,7 @@ export const Languages = () => {
 
       <div className="mx-auto max-w-canvas px-6 lg:px-10">
         {/* Header */}
-        <div className="mb-16 grid grid-cols-1 gap-8 md:grid-cols-12 md:items-end">
+        <div className="mb-10 grid grid-cols-1 gap-8 md:grid-cols-12 md:items-end">
           <div className="md:col-span-7">
             <div className="mb-5 flex items-center gap-3 text-gold-deep">
               <ChapterMark className="h-5 w-auto" />

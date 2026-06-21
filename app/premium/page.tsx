@@ -37,7 +37,7 @@ export default function PremiumBridgePage() {
     <>
       <Nav />
       <main className="relative">
-        <section className="relative overflow-hidden py-24 lg:py-32">
+        <section className="relative overflow-hidden py-14 lg:py-20">
           <div className="mx-auto max-w-canvas px-6 lg:px-10">
             <div className="mx-auto max-w-3xl">
               {/* Chapter eyebrow */}
@@ -59,12 +59,12 @@ export default function PremiumBridgePage() {
                 activates inside the app as soon as the purchase clears —
                 no codes, no waiting, no email matching to get wrong.
               </p>
-              <p className="mx-auto mb-12 max-w-xl text-center font-deva text-lg font-semibold text-ink-soft lg:text-xl">
+              <p className="mx-auto mb-8 max-w-xl text-center font-deva text-lg font-semibold text-ink-soft lg:text-xl">
                 सदस्यता Play Store के माध्यम से उपलब्ध है।
               </p>
 
               {/* Centred foil card */}
-              <div className="foil-card relative mx-auto max-w-xl p-10 text-center lg:p-12">
+              <div className="foil-card relative mx-auto max-w-xl p-10 text-center lg:p-8">
                 <CornerFlourish className="absolute left-2 top-2 h-7 w-7 text-gold-deep" />
                 <CornerFlourish flip className="absolute right-2 top-2 h-7 w-7 text-gold-deep" />
                 <CornerFlourish className="absolute bottom-2 left-2 h-7 w-7 rotate-180 text-gold-deep" />
@@ -120,7 +120,7 @@ export default function PremiumBridgePage() {
               </div>
 
               {/* Why Play Store — short editorial reassurance */}
-              <div className="mx-auto mt-16 max-w-2xl">
+              <div className="mx-auto mt-10 max-w-2xl">
                 <div className="mb-8 flex items-center justify-center text-gold-deep">
                   <DiamondRule className="w-full max-w-md" />
                 </div>

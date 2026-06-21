@@ -15,11 +15,11 @@ export const AppShowcase = () => {
   return (
     <section
       aria-label="A tour of the app"
-      className="relative overflow-hidden py-24 lg:py-32"
+      className="relative overflow-hidden py-14 lg:py-20"
     >
       <div className="mx-auto max-w-canvas px-6 lg:px-10">
         {/* Header — eyebrow + display + subhead — two-column layout */}
-        <div className="mb-16 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-end">
+        <div className="mb-10 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-end">
           <div className="lg:col-span-7">
             <div className="mb-5 flex items-center gap-3 text-gold-deep">
               <ChapterMark className="h-5 w-auto" />
@@ -59,7 +59,7 @@ export const AppShowcase = () => {
         </div>
 
         {/* Lotus + divider footer */}
-        <div className="mt-16 flex items-center justify-center gap-4 text-gold">
+        <div className="mt-10 flex items-center justify-center gap-4 text-gold">
           <span className="h-px flex-1 bg-gold/40 max-w-[14rem]" />
           <Lotus className="h-7 w-auto opacity-80" />
           <span className="h-px flex-1 bg-gold/40 max-w-[14rem]" />

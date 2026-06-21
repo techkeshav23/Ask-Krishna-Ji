@@ -9,7 +9,7 @@ export const SacredVerse = () => {
   return (
     <section
       aria-label="Verse from the Bhagavad Gita"
-      className="relative bg-ink py-24 lg:py-32"
+      className="relative bg-ink py-14 lg:py-20"
     >
       {/* Subtle gold border lines top and bottom */}
       <div className="absolute inset-x-0 top-0 h-px bg-gold/30" />
@@ -29,7 +29,7 @@ export const SacredVerse = () => {
 
       <div className="relative mx-auto max-w-canvas px-6 lg:px-10">
         {/* Eyebrow + chapter mark */}
-        <div className="mb-12 flex items-center gap-4 text-gold-soft">
+        <div className="mb-8 flex items-center gap-4 text-gold-soft">
           <DiamondRule className="hidden w-64 sm:block" />
           <span className="eyebrow text-gold-soft">Bhagavad Gita · ii · 47</span>
           <DiamondRule className="hidden flex-1 sm:block" />

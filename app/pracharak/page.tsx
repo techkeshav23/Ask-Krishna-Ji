@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ChapterMark, Danda, DiamondRule, Lotus } from "@/components/Ornaments";
 
 interface FormState {
   name: string;
@@ -39,7 +40,6 @@ export default function PracharakSignupPage() {
     e.preventDefault();
     setErrorMsg(null);
 
-    // Minimal client-side validation. Server re-validates everything.
     if (!form.name.trim() || !form.phone.trim() || !form.email.trim()) {
       setErrorMsg("Please fill name, phone and email.");
       return;
@@ -83,8 +83,6 @@ export default function PracharakSignupPage() {
         setSubmitting(false);
         return;
       }
-      // Signup API issues a session cookie. Hard-redirect so the server
-      // layout sees the new cookie and renders the portal.
       window.location.href = "/pracharak-portal";
     } catch {
       setErrorMsg("Network error. Please try again.");
@@ -93,139 +91,222 @@ export default function PracharakSignupPage() {
   };
 
   return (
-    <main className="min-h-screen px-6 py-12">
-      <div className="max-w-xl mx-auto">
-        <Link
-          href="/"
-          className="text-text-secondary hover:text-text-primary text-sm"
-        >
-          ← Home
-        </Link>
+    <main className="auth-shell">
+      <div className="w-full max-w-2xl">
+        {/* Breadcrumb */}
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-soft transition-colors hover:text-saffron-deep"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <path d="M14 8 H3 M7 4 L3 8 L7 12" />
+            </svg>
+            Home
+          </Link>
+        </div>
 
-        <div className="text-center mt-4 mb-6">
-          <div className="text-4xl mb-2">🪷</div>
-          <h1 className="text-3xl font-bold mb-2">
-            गीता के प्रचारक बनें
+        {/* Page header */}
+        <div className="mb-8 text-center">
+          <Lotus className="mx-auto mb-4 h-10 w-auto text-saffron-deep" />
+          <div className="mb-4 inline-flex items-center gap-3 text-gold-deep">
+            <ChapterMark className="h-4 w-auto" />
+            <span className="eyebrow">An Invitation</span>
+            <ChapterMark className="h-4 w-auto" />
+          </div>
+          <h1 className="font-display text-display-md font-bold text-balance text-ink-deep">
+            Become a{" "}
+            <span className="italic text-saffron-deep">Gita Pracharak.</span>
           </h1>
-          <p className="text-text-secondary text-sm">
-            Become a Geeta Pracharak — spread Krishna Ji's message and earn
-            by selling premium subscriptions at bulk-rate.
+          <p className="mt-3 font-deva text-xl font-semibold text-ink-soft">
+            गीता के प्रचारक बनें।
+          </p>
+          <p className="mx-auto mt-6 max-w-lg text-[1.05rem] leading-relaxed text-ink-soft">
+            Spread Krishna Ji's message and earn by selling premium
+            subscriptions at the special bulk rate.
           </p>
         </div>
 
-        <Link
-          href="/pracharak-portal/login"
-          className="block w-full text-center bg-saffron hover:bg-saffron-light
-                     text-bg-primary font-bold text-base py-4 px-6 rounded-xl
-                     border-2 border-saffron-light shadow-lg
-                     transition-colors mb-3"
-        >
-          पहले से प्रचारक हैं? यहाँ लॉगिन करें →
-          <span className="block text-xs font-normal mt-1 opacity-80">
-            Already a pracharak? Login here
-          </span>
-        </Link>
+        {/* Existing-pracharak shortcut — gold-foil card linking to login */}
+        <div className="foil-card relative mx-auto mb-10 max-w-md p-5 text-center">
+          <p className="eyebrow mb-2 text-gold-deep">Already Signed Up?</p>
+          <Link
+            href="/pracharak-portal/login"
+            className="form-link inline-flex items-center gap-1.5 text-base"
+          >
+            Open the Pracharak Portal
+            <span aria-hidden="true">→</span>
+          </Link>
+        </div>
 
-        <p className="text-center text-xs text-text-muted mb-4">
-          — या नया अकाउंट बनाएं / Or create a new account below —
-        </p>
+        {/* Divider */}
+        <div className="mb-10 flex items-center justify-center gap-4 text-gold-deep">
+          <span className="h-px w-16 bg-gold-deep/40" />
+          <span className="eyebrow">Or Create a New Account</span>
+          <span className="h-px w-16 bg-gold-deep/40" />
+        </div>
 
-        <form onSubmit={onSubmit} className="card space-y-4">
+        {/* The signup form */}
+        <form onSubmit={onSubmit} noValidate className="form-card">
+          <div className="mb-8">
+            <h2 className="font-display text-2xl font-bold text-ink-deep">
+              Apply to be a Pracharak
+            </h2>
+            <p className="mt-1 text-sm text-ink-soft">
+              Fields marked <span className="text-saffron-deep">*</span> are
+              required.
+            </p>
+          </div>
+
+          {/* Section 1 — identity */}
+          <SectionLabel>Identity</SectionLabel>
           <Field
-            label="पूरा नाम / Full name *"
+            id="px-name"
+            label="Full Name *"
+            placeholder="आपका नाम"
             value={form.name}
             onChange={update("name")}
             required
-            placeholder="आपका नाम"
+            autoCapitalize="words"
+            autoComplete="name"
           />
           <Field
-            label="फ़ोन / Phone *"
-            value={form.phone}
-            onChange={update("phone")}
-            required
-            placeholder="10-digit Indian mobile"
-            inputMode="tel"
-          />
-          <Field
-            label="WhatsApp (if different from phone)"
-            value={form.whatsapp}
-            onChange={update("whatsapp")}
-            placeholder="Optional"
-            inputMode="tel"
-          />
-          <Field
-            label="ईमेल / Email *"
+            id="px-email"
+            label="Email *"
+            placeholder="you@example.com"
             value={form.email}
             onChange={update("email")}
             required
-            placeholder="you@example.com"
+            type="email"
             inputMode="email"
             autoCapitalize="none"
+            autoComplete="email"
+          />
+
+          {/* Section 2 — contact */}
+          <SectionLabel>Contact</SectionLabel>
+          <Field
+            id="px-phone"
+            label="Mobile Number *"
+            placeholder="10-digit Indian mobile"
+            value={form.phone}
+            onChange={update("phone")}
+            required
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
           />
           <Field
-            label="Password * (min 8 characters)"
+            id="px-whatsapp"
+            label="WhatsApp (if different)"
+            placeholder="Optional"
+            value={form.whatsapp}
+            onChange={update("whatsapp")}
+            type="tel"
+            inputMode="tel"
+          />
+
+          {/* Section 3 — credentials */}
+          <SectionLabel>Choose a Password</SectionLabel>
+          <Field
+            id="px-pass"
+            label="Password *"
+            placeholder="Minimum 8 characters"
             value={form.password}
             onChange={update("password")}
             required
-            placeholder="Choose a strong password"
             type="password"
             autoCapitalize="none"
+            autoComplete="new-password"
+            help="Use a strong password — you'll log in with this and your email."
           />
           <Field
+            id="px-pass-c"
             label="Confirm Password *"
+            placeholder="Re-type your password"
             value={form.confirmPassword}
             onChange={update("confirmPassword")}
             required
-            placeholder="Re-type password"
             type="password"
             autoCapitalize="none"
+            autoComplete="new-password"
           />
-          <div className="grid grid-cols-2 gap-3">
+
+          {/* Section 4 — optional */}
+          <SectionLabel>About You (Optional)</SectionLabel>
+          <div className="mb-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field
-              label="शहर / City"
+              id="px-city"
+              label="City"
+              placeholder="e.g. Lucknow"
               value={form.city}
               onChange={update("city")}
-              placeholder="e.g. Lucknow"
+              inline
             />
             <Field
-              label="राज्य / State"
+              id="px-state"
+              label="State"
+              placeholder="e.g. Uttar Pradesh"
               value={form.state}
               onChange={update("state")}
-              placeholder="e.g. UP"
+              inline
             />
           </div>
           <Field
-            label="किसने बताया? / How did you hear about us?"
+            id="px-ref"
+            label="How did you hear about us?"
+            placeholder="A friend, social media, etc."
             value={form.reference}
             onChange={update("reference")}
-            placeholder="Optional"
           />
 
           {errorMsg ? (
-            <p className="text-sm text-red-300 bg-red-900/20 border border-red-500/40 rounded-lg p-3">
+            <div role="alert" className="form-alert mb-5">
               {errorMsg}
-            </p>
+            </div>
           ) : null}
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="btn-primary w-full"
-          >
-            {submitting ? "Creating account..." : "Sign up + continue →"}
+          <button type="submit" disabled={submitting} className="btn-solid">
+            {submitting ? (
+              <>
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-parchment border-t-transparent" />
+                Creating your account…
+              </>
+            ) : (
+              <>
+                <Danda className="text-gold-soft" />
+                Apply &amp; Continue
+              </>
+            )}
           </button>
 
-          <p className="text-xs text-text-muted text-center">
-            You'll be taken to your dashboard to activate by purchasing
-            your first batch of codes (₹2,500 for 5).
+          <p className="form-help mt-4 text-center">
+            After signup you&apos;ll land on your dashboard. Activate by
+            purchasing your first batch of codes (₹2,500 for 5 memberships).
           </p>
         </form>
+
+        {/* Closing divider */}
+        <div className="mt-12 flex items-center justify-center text-gold-deep">
+          <DiamondRule className="w-full max-w-md opacity-80" />
+        </div>
+        <p className="mt-6 text-center font-deva text-sm font-semibold text-ink-fade">
+          🙏 गीता का प्रचार करने में आपके सहयोग के लिए धन्यवाद।
+        </p>
       </div>
     </main>
   );
 }
 
+const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+  <div className="mb-3 mt-6 flex items-center gap-3 first:mt-0">
+    <span className="eyebrow text-gold-deep">{children}</span>
+    <span className="h-px flex-1 bg-gold-deep/30" />
+  </div>
+);
+
 interface FieldProps {
+  id: string;
   label: string;
   value: string;
   onChange: (v: string) => void;
@@ -233,9 +314,14 @@ interface FieldProps {
   placeholder?: string;
   inputMode?: "text" | "tel" | "email" | "numeric";
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
-  type?: "text" | "password";
+  autoComplete?: string;
+  type?: "text" | "password" | "email" | "tel";
+  help?: string;
+  inline?: boolean;
 }
+
 const Field: React.FC<FieldProps> = ({
+  id,
   label,
   value,
   onChange,
@@ -243,13 +329,17 @@ const Field: React.FC<FieldProps> = ({
   placeholder,
   inputMode = "text",
   autoCapitalize,
+  autoComplete,
   type = "text",
+  help,
+  inline = false,
 }) => (
-  <label className="block">
-    <span className="text-sm font-semibold text-text-primary mb-1 block">
+  <div className={inline ? "" : "mb-5"}>
+    <label htmlFor={id} className="form-label">
       {label}
-    </span>
+    </label>
     <input
+      id={id}
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
@@ -257,9 +347,9 @@ const Field: React.FC<FieldProps> = ({
       required={required}
       inputMode={inputMode}
       autoCapitalize={autoCapitalize}
-      className="w-full bg-bg-primary border border-saffron/30 rounded-lg
-                 px-3 py-2 text-text-primary placeholder:text-text-muted
-                 focus:outline-none focus:border-saffron transition-colors"
+      autoComplete={autoComplete}
+      className="form-input"
     />
-  </label>
+    {help ? <span className="form-help">{help}</span> : null}
+  </div>
 );

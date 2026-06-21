@@ -22,7 +22,7 @@ export const Hero = () => {
         <Chakra className="h-full w-full" />
       </div>
 
-      <div className="relative mx-auto grid max-w-canvas grid-cols-1 gap-10 px-6 pb-24 pt-12 lg:grid-cols-12 lg:gap-16 lg:px-10 lg:pb-32 lg:pt-16">
+      <div className="relative mx-auto grid max-w-canvas grid-cols-1 gap-8 px-6 pb-14 pt-8 lg:grid-cols-12 lg:gap-10 lg:px-10 lg:pb-20 lg:pt-12">
         {/* ── LEFT COLUMN — editorial text block ── */}
         <div className="lg:col-span-7">
           {/* Chapter ornament */}
@@ -57,7 +57,7 @@ export const Hero = () => {
 
           {/* Lede paragraph */}
           <p
-            className="mb-3 max-w-xl text-xl font-medium leading-relaxed text-ink animate-fade-in-up lg:text-2xl"
+            className="mb-3 max-w-xl text-lg font-medium leading-relaxed text-ink animate-fade-in-up lg:text-xl"
             style={{ animationDelay: "0.25s" }}
           >
             A devotional companion to the{" "}
@@ -67,7 +67,7 @@ export const Hero = () => {
             rooted in the verse that fits the moment.
           </p>
           <p
-            className="mb-10 font-deva text-lg font-semibold text-ink-soft animate-fade-in-up lg:text-xl"
+            className="mb-7 font-deva text-base font-semibold text-ink-soft animate-fade-in-up lg:text-lg"
             style={{ animationDelay: "0.32s" }}
           >
             जो प्रश्न आज आप साथ लिए चल रहे हैं, उसका उत्तर गीता से लीजिए।
@@ -75,7 +75,7 @@ export const Hero = () => {
 
           {/* CTAs */}
           <div
-            className="mb-12 flex flex-col items-start gap-4 sm:flex-row sm:items-center animate-fade-in-up"
+            className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center animate-fade-in-up"
             style={{ animationDelay: "0.4s" }}
           >
             <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="btn-architect">

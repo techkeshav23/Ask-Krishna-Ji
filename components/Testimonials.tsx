@@ -44,11 +44,11 @@ export const Testimonials = () => {
   return (
     <section
       aria-label="Reader voices"
-      className="relative py-24 lg:py-32"
+      className="relative py-14 lg:py-20"
     >
       <div className="mx-auto max-w-canvas px-6 lg:px-10">
         {/* Header */}
-        <div className="mb-16 max-w-3xl">
+        <div className="mb-10 max-w-3xl">
           <div className="mb-5 flex items-center gap-3 text-gold-deep">
             <ChapterMark className="h-5 w-auto" />
             <span className="eyebrow">Chapter VII · Reader Voices</span>
@@ -64,7 +64,7 @@ export const Testimonials = () => {
           {TESTIMONIALS.map((t, idx) => (
             <figure
               key={idx}
-              className="relative border-b border-r border-ink/15 p-8 lg:p-12"
+              className="relative border-b border-r border-ink/15 p-8 lg:p-8"
             >
               {/* Oversize opening quote — visual anchor */}
               <span

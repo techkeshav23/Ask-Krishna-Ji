@@ -22,17 +22,17 @@
     background: rgb(var(--paper));
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    font-size: 17px; /* base size bumped from 16 for the devotee audience */
+    font-size: 16px;
   }
   @media (min-width: 1024px) {
-    html { font-size: 18px; }
+    html { font-size: 17px; }
   }
 
   body {
     font-family: var(--font-body), Georgia, "Times New Roman", serif;
     font-weight: 500;
     font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
-    line-height: 1.6;
+    line-height: 1.55;
     /* Paper grain — kept, but the wash is tightened so type stays clear */
     background-color: rgb(243 232 200);
     background-image:
@@ -69,9 +69,9 @@
   h2 { font-weight: 600; }
   h3, h4 { font-weight: 600; }
 
-  /* Paragraphs — leading + measure tuned for screen reading at 17/18px. */
+  /* Paragraphs — leading tuned for compact editorial density. */
   p {
-    line-height: 1.65;
+    line-height: 1.55;
   }
 
   /* Strong type lands harder than browser defaults. */
@@ -176,6 +176,254 @@
     font-weight: 500;
     padding: 0.18em 0.12em 0 0;
     color: rgb(184 69 30);
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     Form primitives — used by every login / signup / checkout
+     page on the site so the marks feel related to the landing.
+     These are the replacement for the earlier .card / .btn-primary
+     classes (which were removed when the parchment aesthetic
+     landed). Keeping them as utilities here avoids 12 different
+     ad-hoc input style strings across the auth pages.
+     ────────────────────────────────────────────────────────── */
+
+  /* The page-shell that auth + checkout pages sit in. Centred
+     vertically, parchment background, with breathing room for
+     the form card. */
+  .auth-shell {
+    @apply min-h-screen flex items-start justify-center
+           px-4 pt-8 pb-12 sm:px-6 sm:pt-14 sm:pb-16;
+  }
+
+  /* The form card itself — a folded ivory page laid over the
+     parchment. Sharp corners, double border (outer ink + inner
+     gold) to echo the editorial frames used throughout the site. */
+  .form-card {
+    position: relative;
+    width: 100%;
+    max-width: 28rem;
+    background: rgb(252 245 225);              /* parchment-ivory */
+    padding: 1.5rem 1.25rem;
+    border: 1px solid rgb(26 16 6 / 0.85);     /* ink outer */
+    box-shadow:
+      0 1px 0 rgba(255, 250, 240, 0.6) inset,
+      0 24px 56px -20px rgba(26, 16, 6, 0.28),
+      0 6px 14px -8px rgba(26, 16, 6, 0.18);
+  }
+  @media (min-width: 640px) {
+    .form-card { padding: 2rem 2rem; }
+  }
+  .form-card::before {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border: 1px solid rgb(168 131 50 / 0.55);  /* gold inner */
+    pointer-events: none;
+  }
+
+  /* Field label — small caps eyebrow style, paired with each input. */
+  .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-family: var(--font-display), Georgia, serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgb(128 96 32);                     /* gold-deep */
+    font-variant-numeric: lining-nums;
+  }
+
+  /* Input + textarea — flat parchment with ink hairline, focus
+     pulls a saffron-deep border so the active field is obvious
+     without screaming. */
+  .form-input {
+    display: block;
+    width: 100%;
+    background: rgb(246 235 208);              /* parchment */
+    color: rgb(26 16 6);                       /* ink-deep */
+    font-family: var(--font-body), Georgia, serif;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+    padding: 0.85rem 1rem;
+    border: 1.5px solid rgb(26 16 6 / 0.35);
+    border-radius: 0;                          /* sharp corners — editorial */
+    transition: border-color 0.2s ease, background 0.2s ease,
+                box-shadow 0.2s ease;
+  }
+  .form-input::placeholder {
+    color: rgb(122 92 62 / 0.6);               /* ink-fade */
+    font-style: italic;
+  }
+  .form-input:hover {
+    border-color: rgb(26 16 6 / 0.6);
+  }
+  .form-input:focus {
+    outline: none;
+    border-color: rgb(138 48 21);              /* saffron-deep */
+    background: rgb(252 245 225);              /* parchment-ivory */
+    box-shadow: 0 0 0 3px rgba(138, 48, 21, 0.12);
+  }
+  .form-input:disabled,
+  .form-input[readonly] {
+    background: rgb(246 235 208 / 0.6);
+    color: rgb(58 36 16);
+    cursor: not-allowed;
+  }
+
+  /* Helper text under an input */
+  .form-help {
+    display: block;
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+    font-style: italic;
+    color: rgb(106 76 46);                     /* ink-fade */
+    line-height: 1.45;
+  }
+
+  /* Field error — inline, single line under input */
+  .form-error {
+    display: block;
+    margin-top: 0.4rem;
+    font-size: 0.8125rem;
+    color: rgb(160 24 24);                     /* sindoor */
+    font-weight: 600;
+  }
+
+  /* Page-level alert (top of form). Distinct from inline field error. */
+  .form-alert {
+    display: block;
+    padding: 0.8rem 1rem;
+    background: rgb(160 24 24 / 0.08);
+    border-left: 3px solid rgb(160 24 24);
+    color: rgb(123 15 15);
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+  .form-alert--info {
+    background: rgb(31 58 95 / 0.07);
+    border-left-color: rgb(31 58 95);
+    color: rgb(15 36 64);
+  }
+  .form-alert--success {
+    background: rgb(168 131 50 / 0.1);
+    border-left-color: rgb(168 131 50);
+    color: rgb(58 36 16);
+  }
+
+  /* Solid block button — full-width form submit. Different from the
+     two-tone btn-architect in the landing page (which is for marketing
+     CTAs); this one is built for forms and accepts disabled state. */
+  .btn-solid {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    background: rgb(26 16 6);                  /* ink-deep */
+    color: rgb(246 235 208);                   /* parchment */
+    font-family: var(--font-display), Georgia, serif;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 0.95rem 1.4rem;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+  .btn-solid:hover:not(:disabled) {
+    background: rgb(13 8 3);
+  }
+  .btn-solid:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .btn-solid:disabled {
+    background: rgb(106 76 46 / 0.6);
+    color: rgb(246 235 208 / 0.7);
+    cursor: not-allowed;
+  }
+
+  /* Saffron variant for "buy/upgrade/sign up" style submits */
+  .btn-solid--saffron {
+    background: rgb(138 48 21);                /* saffron-deep */
+  }
+  .btn-solid--saffron:hover:not(:disabled) {
+    background: rgb(106 36 16);
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     Legacy class shims — these were defined in the previous
+     dark-maroon theme and are still used by admin pages and a
+     couple of helper components. Rather than hunt down and
+     redesign every internal page, we redefine the old class
+     names to render acceptably on parchment. Public-facing
+     pages should prefer the new .form-card / .btn-solid / etc.
+     ────────────────────────────────────────────────────────── */
+  .card {
+    background: rgb(252 245 225);
+    border: 1px solid rgb(26 16 6 / 0.15);
+    padding: 1.5rem;
+    color: rgb(26 16 6);
+  }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: rgb(138 48 21);
+    color: rgb(246 235 208);
+    font-family: var(--font-display), Georgia, serif;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 0.85rem 1.4rem;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: rgb(106 36 16);
+  }
+  .btn-primary:disabled {
+    background: rgb(106 76 46 / 0.6);
+    color: rgb(246 235 208 / 0.7);
+    cursor: not-allowed;
+  }
+  .btn-gold {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: rgb(168 131 50);
+    color: rgb(26 16 6);
+    font-family: var(--font-display), Georgia, serif;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 0.85rem 1.4rem;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  .btn-gold:hover:not(:disabled) {
+    background: rgb(128 96 32);
+  }
+  .btn-gold:disabled {
+    background: rgb(168 131 50 / 0.5);
+    cursor: not-allowed;
+  }
+
+  /* Plain link styled as part of forms */
+  .form-link {
+    color: rgb(138 48 21);                     /* saffron-deep */
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(138, 48, 21, 0.4);
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .form-link:hover {
+    color: rgb(106 36 16);
+    border-bottom-color: rgb(106, 36, 16);
   }
 
   /* ── Foil card — for the premium offering ── */

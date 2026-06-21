@@ -59,7 +59,7 @@ export const Footer = () => {
 
       {/* ── Headline strip ── */}
       <div className="relative border-b border-gold/20">
-        <div className="mx-auto grid max-w-canvas grid-cols-1 gap-10 px-6 py-16 lg:grid-cols-12 lg:gap-16 lg:px-10 lg:py-20">
+        <div className="mx-auto grid max-w-canvas grid-cols-1 gap-8 px-6 py-10 lg:grid-cols-12 lg:gap-10 lg:px-10 lg:py-14">
           <div className="lg:col-span-7">
             <p className="eyebrow mb-4 text-gold-soft">A Closing Word</p>
             <p className="font-display text-3xl font-semibold text-balance text-parchment lg:text-[2.6rem] lg:font-bold lg:leading-[1.15]">
@@ -85,8 +85,8 @@ export const Footer = () => {
       </div>
 
       {/* ── Columns ── */}
-      <div className="relative mx-auto max-w-canvas px-6 py-16 lg:px-10">
-        <div className="grid grid-cols-2 gap-x-8 gap-y-12 md:grid-cols-12">
+      <div className="relative mx-auto max-w-canvas px-6 py-10 lg:px-10 lg:py-14">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-12">
           {/* Imprint mark — full brand wordmark with the "Ji" honorific
               picked out in burnished gold to match the navigation bar. */}
           <div className="col-span-2 md:col-span-3">
@@ -145,7 +145,7 @@ export const Footer = () => {
 
       {/* ── Colophon: blessing + copyright + imprint mark ── */}
       <div className="relative border-t border-gold/15">
-        <div className="mx-auto max-w-canvas px-6 py-12 lg:px-10">
+        <div className="mx-auto max-w-canvas px-6 py-8 lg:px-10 lg:py-10">
           <div className="mb-8 flex items-center justify-center text-gold-soft">
             <DiamondRule className="w-full max-w-md opacity-80" />
           </div>

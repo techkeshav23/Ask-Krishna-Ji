@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/session";
 import { adminDb } from "@/lib/firebase-admin";
+import { Lotus } from "@/components/Ornaments";
 
 /**
  * Server-side gate for the pracharak portal. The route group
@@ -26,9 +27,6 @@ export default async function PracharakPortalProtectedLayout({
     redirect("/pracharak-portal/login");
   }
 
-  // Re-check status server-side so a revoked pracharak can't keep using
-  // a still-valid JWT cookie. Doing this in the layout means every
-  // protected page benefits without per-page boilerplate.
   const db = adminDb();
   const pSnap = await db.collection("pracharaks").doc(session.docId).get();
   if (!pSnap.exists) {
@@ -42,32 +40,39 @@ export default async function PracharakPortalProtectedLayout({
 
   return (
     <div className="min-h-screen">
-      <header className="bg-bg-secondary border-b border-saffron/20">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      {/* Header bar — parchment with ink hairline, matches the editorial look */}
+      <header className="border-b border-ink/15 bg-parchment-ivory/80 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-4">
             <Link
               href="/pracharak-portal"
-              className="font-bold text-saffron hover:text-saffron-light"
+              className="inline-flex items-center gap-2"
             >
-              🪷 Pracharak · Ask Krishna Ji
+              <Lotus className="h-5 w-auto text-saffron-deep" />
+              <span className="font-display text-lg font-bold leading-none text-ink-deep">
+                Pracharak
+              </span>
+              <span className="hidden text-xs font-semibold uppercase tracking-widest text-gold-deep sm:inline">
+                · Ask Krishna Ji
+              </span>
             </Link>
-            <nav className="hidden md:flex items-center gap-3 text-sm text-text-secondary">
+            <nav className="hidden items-center gap-5 text-sm font-semibold text-ink-soft md:flex">
               <Link
                 href="/pracharak-portal"
-                className="hover:text-text-primary"
+                className="transition-colors hover:text-saffron-deep"
               >
                 Dashboard
               </Link>
               <Link
                 href="/pracharak-portal/buy-codes"
-                className="hover:text-text-primary"
+                className="transition-colors hover:text-saffron-deep"
               >
                 Buy Codes
               </Link>
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-text-muted hidden sm:inline">
+            <span className="hidden text-xs font-medium text-ink-fade sm:inline">
               {session.email}
             </span>
             <form action="/api/auth/logout" method="POST">
@@ -78,7 +83,7 @@ export default async function PracharakPortalProtectedLayout({
               />
               <button
                 type="submit"
-                className="text-xs px-3 py-1 rounded-md bg-saffron-dark text-white hover:bg-saffron"
+                className="border border-ink/40 bg-transparent px-3 py-1.5 text-xs font-semibold tracking-wide text-ink-deep transition-colors hover:border-saffron-deep hover:text-saffron-deep"
               >
                 Logout
               </button>
@@ -86,7 +91,9 @@ export default async function PracharakPortalProtectedLayout({
           </div>
         </div>
       </header>
-      <div className="max-w-5xl mx-auto px-4 py-6">{children}</div>
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
+        {children}
+      </div>
     </div>
   );
 }

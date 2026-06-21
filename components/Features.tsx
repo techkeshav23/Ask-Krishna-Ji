@@ -66,11 +66,11 @@ export const Features = () => {
     <section
       id="features"
       aria-label="Features"
-      className="relative py-24 lg:py-32"
+      className="relative py-14 lg:py-20"
     >
       <div className="mx-auto max-w-canvas px-6 lg:px-10">
         {/* Header */}
-        <div className="mb-16 max-w-3xl">
+        <div className="mb-10 max-w-3xl">
           <div className="mb-5 flex items-center gap-3 text-gold-deep">
             <ChapterMark className="h-5 w-auto" />
             <span className="eyebrow">Chapter III · The Practice</span>
@@ -132,7 +132,7 @@ export const Features = () => {
         </div>
 
         {/* Footer divider */}
-        <div className="mt-16 flex items-center justify-center text-gold">
+        <div className="mt-10 flex items-center justify-center text-gold">
           <DiamondRule className="w-72 max-w-full" />
         </div>
       </div>

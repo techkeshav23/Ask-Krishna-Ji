@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ChapterMark } from "@/components/Ornaments";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -23,72 +22,99 @@ export default function AdminLoginPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Login failed.");
+        setError(data.error || "Login failed. Check your credentials.");
         setSubmitting(false);
         return;
       }
-      // Full reload so the server-rendered layout picks up the new cookie.
       window.location.href = "/admin";
     } catch {
-      setError("Network error.");
+      setError("Network error. Please try again.");
       setSubmitting(false);
     }
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6">
-      <div className="card max-w-md w-full">
-        <Link
-          href="/"
-          className="text-text-secondary hover:text-text-primary text-sm"
-        >
-          ← Home
-        </Link>
-        <div className="text-center my-6">
-          <div className="text-4xl mb-2">🔐</div>
-          <h1 className="text-2xl font-bold">Admin Login</h1>
-          <p className="text-text-secondary text-sm mt-1">
-            Restricted area · Authorised personnel only
-          </p>
+    <main className="auth-shell">
+      <div className="w-full max-w-md">
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-soft transition-colors hover:text-saffron-deep"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <path d="M14 8 H3 M7 4 L3 8 L7 12" />
+            </svg>
+            Home
+          </Link>
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-4">
-          <label className="block">
-            <span className="text-sm font-semibold mb-1 block">Email</span>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoCapitalize="none"
-              className="w-full bg-bg-primary border border-saffron/30 rounded-lg px-3 py-2 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-saffron"
-            />
-          </label>
-          <label className="block">
-            <span className="text-sm font-semibold mb-1 block">Password</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full bg-bg-primary border border-saffron/30 rounded-lg px-3 py-2 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-saffron"
-            />
-          </label>
-
-          {error ? (
-            <p className="text-sm text-red-300 bg-red-900/20 border border-red-500/40 rounded-lg p-3">
-              {error}
+        <div className="form-card">
+          <div className="mb-8 flex flex-col items-center text-center">
+            <div className="mb-3 flex items-center gap-2 text-gold-deep">
+              <ChapterMark className="h-4 w-auto" />
+              <span className="eyebrow">Restricted</span>
+              <ChapterMark className="h-4 w-auto" />
+            </div>
+            <h1 className="font-display text-3xl font-bold text-ink-deep">
+              Admin Sign-in
+            </h1>
+            <p className="mt-2 text-sm italic text-ink-soft">
+              Authorised personnel only.
             </p>
-          ) : null}
+          </div>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="btn-primary w-full"
-          >
-            {submitting ? "Signing in..." : "Sign in"}
-          </button>
-        </form>
+          <form onSubmit={onSubmit} noValidate>
+            <div className="mb-5">
+              <label htmlFor="adm-email" className="form-label">
+                Email Address
+              </label>
+              <input
+                id="adm-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoCapitalize="none"
+                autoComplete="username"
+                placeholder="admin@example.com"
+                className="form-input"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label htmlFor="adm-pass" className="form-label">
+                Password
+              </label>
+              <input
+                id="adm-pass"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                placeholder="••••••••"
+                className="form-input"
+              />
+            </div>
+
+            {error ? (
+              <div role="alert" className="form-alert mb-5">
+                {error}
+              </div>
+            ) : null}
+
+            <button type="submit" disabled={submitting} className="btn-solid">
+              {submitting ? (
+                <>
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-parchment border-t-transparent" />
+                  Signing in…
+                </>
+              ) : (
+                "Sign in"
+              )}
+            </button>
+          </form>
+        </div>
       </div>
     </main>
   );

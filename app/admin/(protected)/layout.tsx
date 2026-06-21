@@ -21,53 +21,65 @@ export default function AdminProtectedLayout({
   return (
     <div className="min-h-screen">
       <AdminTopBar email={session.email} />
-      <div className="max-w-6xl mx-auto px-4 py-6">{children}</div>
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+        {children}
+      </div>
     </div>
   );
 }
 
 const AdminTopBar: React.FC<{ email: string }> = ({ email }) => (
-  <header className="bg-bg-secondary border-b border-saffron/20">
-    <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+  <header className="border-b border-ink/15 bg-parchment-ivory/80 backdrop-blur-sm">
+    <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
       <div className="flex items-center gap-4">
-        <Link
-          href="/admin"
-          className="font-bold text-saffron hover:text-saffron-light"
-        >
-          🙏 Admin · Ask Krishna Ji
+        <Link href="/admin" className="inline-flex items-baseline gap-2">
+          <span className="font-display text-lg font-bold leading-none text-ink-deep">
+            Admin
+          </span>
+          <span className="hidden text-xs font-semibold uppercase tracking-widest text-gold-deep sm:inline">
+            · Ask Krishna Ji
+          </span>
         </Link>
-        <nav className="hidden md:flex items-center gap-3 text-sm text-text-secondary">
-          <Link href="/admin" className="hover:text-text-primary">
+        <nav className="hidden items-center gap-5 text-sm font-semibold text-ink-soft md:flex">
+          <Link href="/admin" className="transition-colors hover:text-saffron-deep">
             Overview
           </Link>
-          <Link href="/admin/pracharaks" className="hover:text-text-primary">
+          <Link
+            href="/admin/pracharaks"
+            className="transition-colors hover:text-saffron-deep"
+          >
             Pracharaks
           </Link>
-          <Link href="/admin/orders" className="hover:text-text-primary">
+          <Link
+            href="/admin/orders"
+            className="transition-colors hover:text-saffron-deep"
+          >
             Orders
           </Link>
-          <Link href="/admin/codes" className="hover:text-text-primary">
+          <Link
+            href="/admin/codes"
+            className="transition-colors hover:text-saffron-deep"
+          >
             Codes
           </Link>
         </nav>
       </div>
       <div className="flex items-center gap-3">
-        <span className="text-xs text-text-muted hidden sm:inline">{email}</span>
+        <span className="hidden text-xs font-medium text-ink-fade sm:inline">
+          {email}
+        </span>
         <LogoutButton />
       </div>
     </div>
   </header>
 );
 
-// Server component — uses a plain HTML form that POSTs to /api/auth/logout
-// with a `redirect` field. The logout API clears the cookie + 303-redirects
-// to /admin/login so the user lands cleanly without seeing a JSON response.
 const LogoutButton: React.FC = () => (
   <form action="/api/auth/logout" method="POST">
     <input type="hidden" name="redirect" value="/admin/login" />
     <button
       type="submit"
-      className="text-xs px-3 py-1 rounded-md bg-saffron-dark text-white hover:bg-saffron"
+      className="border border-ink/40 bg-transparent px-3 py-1.5 text-xs font-semibold tracking-wide text-ink-deep transition-colors hover:border-saffron-deep hover:text-saffron-deep"
     >
       Logout
     </button>
