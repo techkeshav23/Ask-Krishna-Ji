@@ -413,6 +413,30 @@
     cursor: not-allowed;
   }
 
+  /* Legal-page bulleted list — diamond bullets, indent, comfortable
+     spacing. Used by /privacy + /terms inside the LegalSection wrapper. */
+  .legal-list {
+    list-style: none;
+    padding-left: 0;
+    margin: 0.25rem 0 0.5rem;
+  }
+  .legal-list li {
+    position: relative;
+    padding-left: 1.25rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+  }
+  .legal-list li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.7em;
+    width: 6px;
+    height: 6px;
+    transform: rotate(45deg);
+    background: rgb(184 69 30);                /* saffron-deep */
+  }
+
   /* Plain link styled as part of forms */
   .form-link {
     color: rgb(138 48 21);                     /* saffron-deep */
