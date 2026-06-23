@@ -75,7 +75,7 @@ export const Hero = () => {
 
           {/* CTAs */}
           <div
-            className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center animate-fade-in-up"
+            className="mb-3 flex flex-col items-start gap-4 sm:flex-row sm:items-center animate-fade-in-up"
             style={{ animationDelay: "0.4s" }}
           >
             <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="btn-architect">
@@ -90,6 +90,20 @@ export const Hero = () => {
               Read the chapters
             </a>
           </div>
+          {/* Platform-availability footnote — small, italic, paired with a
+              tiny gold diamond so it reads as an editorial sidenote rather
+              than a "missing platform" warning. Replace once iOS ships. */}
+          <p
+            className="mb-8 flex items-center gap-2 text-xs font-medium text-ink-fade animate-fade-in"
+            style={{ animationDelay: "0.45s" }}
+          >
+            <span className="inline-block h-1 w-1 rotate-45 bg-gold-deep/70" />
+            <span>
+              Currently on <strong className="font-semibold text-ink-soft">Android</strong>
+              <span className="mx-2 text-gold-deep/60">·</span>
+              <em>iOS edition coming soon</em>
+            </span>
+          </p>
 
           {/* Meta strip — gold rule, three editorial credits */}
           <div

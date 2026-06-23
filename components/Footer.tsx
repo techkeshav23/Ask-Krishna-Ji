@@ -68,17 +68,32 @@ export const Footer = () => {
             </p>
           </div>
           <div className="flex flex-col items-start gap-3 lg:col-span-5 lg:items-end lg:justify-end">
-            <a
-              href={PLAY_STORE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2.5 border-2 border-gold-soft bg-transparent px-6 py-3.5 font-display text-base font-semibold tracking-wide text-parchment transition-colors duration-300 hover:bg-gold-soft hover:text-ink-deep"
-            >
-              <Danda className="text-gold-soft" />
-              Open on Google Play
-            </a>
+            <div className="flex flex-col gap-3 sm:flex-row lg:flex-row lg:items-center">
+              <a
+                href={PLAY_STORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2.5 border-2 border-gold-soft bg-transparent px-5 py-3 font-display text-base font-semibold tracking-wide text-parchment transition-colors duration-300 hover:bg-gold-soft hover:text-ink-deep"
+              >
+                <Danda className="text-gold-soft" />
+                Google Play
+              </a>
+              {/* iOS placeholder — same shape as Play Store CTA but muted +
+                  non-interactive. Communicates "coming soon" without making
+                  the platform feel absent. Replace this with an active <a>
+                  pointing at the App Store URL once iOS ships. */}
+              <span
+                aria-disabled="true"
+                className="inline-flex cursor-not-allowed items-center gap-2.5 border-2 border-gold-soft/30 bg-transparent px-5 py-3 font-display text-base font-semibold tracking-wide text-parchment-warm/55"
+              >
+                App Store
+                <span className="text-[0.6rem] font-bold uppercase tracking-widest text-gold-soft/70">
+                  · soon
+                </span>
+              </span>
+            </div>
             <p className="text-sm italic text-parchment-warm/75">
-              An iOS edition is in preparation.
+              Currently on Android · iOS edition in preparation.
             </p>
           </div>
         </div>
@@ -162,11 +177,29 @@ export const Footer = () => {
             </p>
           </div>
 
-          <div className="mt-12 flex flex-col items-center justify-between gap-3 text-sm text-parchment-warm/70 sm:flex-row">
-            <p>© {year} Ask Krishna Ji · An offering of the prachār.</p>
-            <p className="font-mono text-xs font-semibold uppercase tracking-widest">
-              Printed for the screen · Adhyāya 1.0.3
+          {/* ── Imprint credits — placed in the colophon position the way a
+                printed book carries its publisher's mark. Founder named first
+                (the devotional intent behind the work), company beneath in
+                quieter eyebrow type (the operating entity). ── */}
+          <div className="mt-10 flex flex-col items-center gap-2 text-center">
+            <div className="mb-1 flex items-center gap-2 text-gold-soft/70">
+              <span className="h-px w-10 bg-gold-soft/35" />
+              <span className="text-[0.6rem]">◆</span>
+              <span className="h-px w-10 bg-gold-soft/35" />
+            </div>
+            <p className="font-display text-base text-parchment-warm/90">
+              Founded by{" "}
+              <span className="font-semibold italic text-parchment">
+                Smt. Kalawati Sarupria
+              </span>
             </p>
+            <p className="text-[0.65rem] font-bold uppercase tracking-widest text-gold-soft/80">
+              A Monagra Solutions Product
+            </p>
+          </div>
+
+          <div className="mt-10 text-center text-sm text-parchment-warm/70">
+            <p>© {year} Ask Krishna Ji</p>
           </div>
         </div>
       </div>
