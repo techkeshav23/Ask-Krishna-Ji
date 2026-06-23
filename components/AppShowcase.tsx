@@ -37,8 +37,11 @@ export const AppShowcase = () => {
           </p>
         </div>
 
-        {/* Three phones — composed asymmetrically */}
-        <div className="relative mx-auto grid h-[640px] max-w-5xl grid-cols-12 items-end lg:h-[720px]">
+        {/* Three phones — composed asymmetrically. Below sm only the centre
+            phone is visible (left/right are `hidden sm:block`), so the
+            container height collapses to auto on mobile — otherwise we
+            left 640px of empty white space below the lone visible phone. */}
+        <div className="relative mx-auto grid h-auto max-w-5xl grid-cols-12 items-end sm:h-[640px] lg:h-[720px]">
           {/* Left phone — Reader */}
           <div className="col-span-7 row-start-1 -mb-6 ml-2 mr-[-3rem] hidden translate-y-8 transform sm:block lg:col-span-4 lg:translate-y-12">
             <PhoneFrame screen="reader" rotate={-3.5} />

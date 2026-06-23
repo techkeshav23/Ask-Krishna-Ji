@@ -38,7 +38,7 @@ export const SacredVerse = () => {
         {/* The Sanskrit shloka — display Devanagari, generous leading */}
         <blockquote className="mx-auto max-w-4xl">
           <p
-            className="font-sanskrit text-3xl leading-[1.55] text-parchment text-balance md:text-4xl lg:text-5xl"
+            className="font-sanskrit text-2xl leading-[1.55] text-parchment text-balance sm:text-3xl md:text-4xl lg:text-5xl"
             lang="sa"
           >
             कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।<br />

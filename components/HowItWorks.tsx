@@ -47,7 +47,7 @@ export const HowItWorks = () => {
               key={step.numeral}
               className="relative flex flex-col bg-parchment-ivory p-8 lg:p-8"
             >
-              <span className="mb-6 font-display text-7xl italic text-saffron/35 lg:text-8xl">
+              <span className="mb-6 font-display text-5xl italic text-saffron/35 md:text-7xl lg:text-8xl">
                 {step.numeral}
               </span>
               <h3 className="mb-1 font-display text-3xl font-bold text-ink-deep">{step.title}</h3>

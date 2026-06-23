@@ -6,10 +6,13 @@ const PLAY_STORE_URL =
 export const Hero = () => {
   return (
     <section className="relative overflow-hidden">
-      {/* Yantra watermark — sacred geometry whispering behind the hero */}
+      {/* Yantra watermark — sacred geometry whispering behind the hero.
+          Hidden on phones (purely decorative — its negative -right-32
+          offset can bleed past viewport edge on <360px screens and create
+          a horizontal scrollbar even with overflow-hidden on the section). */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-32 top-8 h-[640px] w-[640px] text-gold opacity-[0.08] lg:-right-16 lg:top-0"
+        className="pointer-events-none absolute -right-32 top-8 hidden h-[640px] w-[640px] text-gold opacity-[0.08] sm:block lg:-right-16 lg:top-0"
       >
         <Yantra className="h-full w-full" />
       </div>

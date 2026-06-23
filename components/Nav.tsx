@@ -20,14 +20,14 @@ export const Nav = () => {
       {/* Mark — full brand wordmark "Ask Krishna Ji" with the honorific
           "Ji" rendered in the burnished-gold accent so it reads as a
           deliberate typographic mark, not an afterthought. */}
-      <Link href="/" className="group inline-flex items-baseline gap-2">
-        <span className="font-display text-2xl font-bold leading-none text-ink-deep lg:text-[1.8rem]">
+      <Link href="/" className="group inline-flex items-baseline gap-1.5 sm:gap-2">
+        <span className="font-display text-lg font-bold leading-none text-ink-deep sm:text-2xl lg:text-[1.8rem]">
           Ask
         </span>
-        <span className="font-display text-2xl font-bold italic leading-none text-saffron-deep lg:text-[1.8rem]">
+        <span className="font-display text-lg font-bold italic leading-none text-saffron-deep sm:text-2xl lg:text-[1.8rem]">
           Krishna
         </span>
-        <span className="font-display text-2xl font-bold leading-none text-gold-deep lg:text-[1.8rem]">
+        <span className="font-display text-lg font-bold leading-none text-gold-deep sm:text-2xl lg:text-[1.8rem]">
           Ji
         </span>
       </Link>

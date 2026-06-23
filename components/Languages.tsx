@@ -82,7 +82,7 @@ export const Languages = () => {
               className="group relative flex flex-col items-center justify-center gap-1 bg-parchment-ivory px-4 py-7 transition-colors duration-500 hover:bg-parchment"
             >
               <span
-                className={`block text-balance text-center text-[1.85rem] font-semibold leading-tight text-ink-deep transition-colors duration-500 group-hover:text-saffron-deep ${lang.fontClass}`}
+                className={`block text-balance text-center text-[1.35rem] font-semibold leading-tight text-ink-deep transition-colors duration-500 group-hover:text-saffron-deep sm:text-[1.85rem] ${lang.fontClass}`}
                 lang={lang.code}
               >
                 {lang.endonym}

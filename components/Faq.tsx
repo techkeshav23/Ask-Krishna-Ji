@@ -79,7 +79,7 @@ export const Faq = () => {
                       <span className="mt-1 font-mono text-sm font-bold text-gold-deep">
                         {String(idx + 1).padStart(2, "0")}
                       </span>
-                      <span className="font-display text-2xl font-semibold text-ink-deep transition-colors group-hover:text-saffron-deep md:text-[1.65rem]">
+                      <span className="font-display text-xl font-semibold text-ink-deep transition-colors group-hover:text-saffron-deep sm:text-2xl md:text-[1.65rem]">
                         {qa.q}
                       </span>
                     </span>

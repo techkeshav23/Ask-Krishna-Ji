@@ -69,7 +69,7 @@ export const Testimonials = () => {
               {/* Oversize opening quote — visual anchor */}
               <span
                 aria-hidden="true"
-                className="absolute left-4 top-4 font-display text-7xl leading-none text-saffron/30 lg:left-6 lg:top-2 lg:text-8xl"
+                className="absolute left-4 top-4 font-display text-5xl leading-none text-saffron/30 md:text-7xl lg:left-6 lg:top-2 lg:text-8xl"
               >
                 &ldquo;
               </span>

@@ -59,7 +59,7 @@ export const Premium = () => {
         {/* Two-column tier card layout */}
         <div className="grid grid-cols-1 gap-px overflow-hidden border border-ink/15 bg-ink/15 lg:grid-cols-2">
           {/* ── Wayfarer (Free) ── */}
-          <article className="bg-parchment-ivory p-8 lg:p-8">
+          <article className="bg-parchment-ivory p-5 sm:p-6 md:p-8">
             <header className="mb-8">
               <p className="eyebrow mb-2 text-ink-fade">Common Path</p>
               <h3 className="font-display text-4xl font-bold text-ink-deep">{TIER_COMMON.label}</h3>
@@ -95,7 +95,7 @@ export const Premium = () => {
           </article>
 
           {/* ── Pilgrim (Premium) — gold foil ── */}
-          <article className="foil-card relative p-8 lg:p-8">
+          <article className="foil-card relative p-5 sm:p-6 md:p-8">
             {/* Corner flourishes — make the card feel embossed */}
             <CornerFlourish className="absolute left-2 top-2 h-7 w-7 text-gold-deep" />
             <CornerFlourish flip className="absolute right-2 top-2 h-7 w-7 text-gold-deep" />

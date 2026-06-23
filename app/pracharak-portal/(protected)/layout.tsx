@@ -72,7 +72,7 @@ export default async function PracharakPortalProtectedLayout({
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <span className="hidden text-xs font-medium text-ink-fade sm:inline">
+            <span className="hidden text-xs font-medium text-ink-fade md:inline">
               {session.email}
             </span>
             <form action="/api/auth/logout" method="POST">

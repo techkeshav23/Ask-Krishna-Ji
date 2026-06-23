@@ -73,7 +73,7 @@ export const Footer = () => {
                 href={PLAY_STORE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2.5 border-2 border-gold-soft bg-transparent px-5 py-3 font-display text-base font-semibold tracking-wide text-parchment transition-colors duration-300 hover:bg-gold-soft hover:text-ink-deep"
+                className="inline-flex items-center gap-2 border-2 border-gold-soft bg-transparent px-3 py-2 font-display text-sm font-semibold tracking-wide text-parchment transition-colors duration-300 hover:bg-gold-soft hover:text-ink-deep sm:gap-2.5 sm:px-5 sm:py-3 sm:text-base"
               >
                 <Danda className="text-gold-soft" />
                 Google Play
@@ -84,7 +84,7 @@ export const Footer = () => {
                   pointing at the App Store URL once iOS ships. */}
               <span
                 aria-disabled="true"
-                className="inline-flex cursor-not-allowed items-center gap-2.5 border-2 border-gold-soft/30 bg-transparent px-5 py-3 font-display text-base font-semibold tracking-wide text-parchment-warm/55"
+                className="inline-flex cursor-not-allowed items-center gap-2 border-2 border-gold-soft/30 bg-transparent px-3 py-2 font-display text-sm font-semibold tracking-wide text-parchment-warm/55 sm:gap-2.5 sm:px-5 sm:py-3 sm:text-base"
               >
                 App Store
                 <span className="text-[0.6rem] font-bold uppercase tracking-widest text-gold-soft/70">
