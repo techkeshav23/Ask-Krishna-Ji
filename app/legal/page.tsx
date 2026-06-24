@@ -75,7 +75,7 @@ export default function LegalIndexPage() {
               href="/refund"
               eyebrow="The Ledger"
               title="Refund Policy"
-              description="Subscription purchases are final, non-cancellable, and non-transferable."
+              description="Refunds may be requested by email within 24 hours of purchase. After that, all subscriptions are final."
             />
           </div>
 
