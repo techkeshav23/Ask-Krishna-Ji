@@ -28,7 +28,7 @@ const COLUMNS = [
       { href: "/privacy", label: "Privacy" },
       { href: "/terms", label: "Terms" },
       { href: "/refund", label: "Refunds" },
-      { href: "mailto:hello@askkrishnaji.com", label: "Contact" },
+      { href: "mailto:askkrishnaji@gmail.com", label: "Contact" },
     ],
   },
   {
@@ -37,7 +37,7 @@ const COLUMNS = [
     links: [
       { href: PLAY_STORE_URL, label: "Google Play", external: true },
       { href: "/about", label: "About" },
-      { href: "/blog", label: "Notes" },
+      { href: "/legal", label: "Legal Index" },
     ],
   },
 ] as const;

@@ -58,7 +58,7 @@ export default function LegalIndexPage() {
             </p>
           </header>
 
-          <div className="grid grid-cols-1 gap-px overflow-hidden border border-ink/15 bg-ink/15 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-px overflow-hidden border border-ink/15 bg-ink/15 md:grid-cols-3">
             <DocCard
               href="/terms"
               eyebrow="The Conduct"
@@ -70,6 +70,12 @@ export default function LegalIndexPage() {
               eyebrow="The Custody"
               title="Privacy Policy"
               description="What data we collect, how we use it, and the controls you keep over it."
+            />
+            <DocCard
+              href="/refund"
+              eyebrow="The Ledger"
+              title="Refund Policy"
+              description="Subscription purchases are final, non-cancellable, and non-transferable."
             />
           </div>
 

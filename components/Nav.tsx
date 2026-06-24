@@ -26,6 +26,7 @@ const SECONDARY_LINKS = [
   { href: "/about", label: "About", deva: "परिचय" },
   { href: "/privacy", label: "Privacy Policy", deva: "गोपनीयता" },
   { href: "/terms", label: "Terms of Use", deva: "नियम" },
+  { href: "/refund", label: "Refund Policy", deva: "वापसी नीति" },
   { href: "/legal", label: "Legal Index", deva: "प्रकाशन" },
 ] as const;
 

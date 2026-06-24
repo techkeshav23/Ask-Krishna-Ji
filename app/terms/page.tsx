@@ -237,9 +237,13 @@ export default function TermsPage() {
           <footer className="mt-14 border-t border-ink/15 pt-8 text-center">
             <Lotus className="mx-auto mb-4 h-6 w-auto text-gold-deep opacity-80" />
             <p className="text-base text-ink-soft">
-              For privacy-related information, see our{" "}
+              See also our{" "}
               <Link href="/privacy" className="form-link">
                 Privacy Policy
+              </Link>{" "}
+              and{" "}
+              <Link href="/refund" className="form-link">
+                Refund Policy
               </Link>
               .
             </p>
